@@ -105,13 +105,13 @@ export default function Auction({ league }) {
           onAssign={setAssigningPlayer}
           onRemove={handleRemovePick}
         />
+        <SuggestionsPanel suggestions={suggestions} />
       </div>
 
       <div className="order-1 space-y-3 lg:order-2">
         <ManagerBudgetPanel budgets={budgets} players={rosterPlayers} />
         <RoleBudgetPanel roleBudgets={roleBudgets} defenseModifier={league.defense_modifier} />
         <AllManagersRoleGaps managerGaps={allRoleGaps} />
-        <SuggestionsPanel suggestions={suggestions} />
       </div>
 
       {assigningPlayer && (

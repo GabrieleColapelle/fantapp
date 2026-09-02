@@ -4,10 +4,15 @@ const ROLE_ORDER = { P: 0, D: 1, C: 2, A: 3 }
 
 export default function ManagerBudgetPanel({ budgets, players }) {
   const [expandedId, setExpandedId] = useState(null)
+  const [isOpen, setIsOpen] = useState(true)
 
   return (
     <div className="rounded-lg bg-white p-4 shadow-sm">
-      <h3 className="mb-2 text-sm font-semibold text-slate-700">Budget manager</h3>
+      <button onClick={() => setIsOpen((v) => !v)} className="mb-2 flex w-full items-center justify-between">
+        <h3 className="text-sm font-semibold text-slate-700">Budget manager</h3>
+        <span className="text-xs text-slate-400">{isOpen ? '▲' : '▼'}</span>
+      </button>
+      {isOpen && (
       <div className="space-y-2">
         {budgets.map((b) => {
           const pct = b.budget_total > 0 ? Math.min(100, (b.spent / b.budget_total) * 100) : 0
@@ -58,6 +63,7 @@ export default function ManagerBudgetPanel({ budgets, players }) {
           )
         })}
       </div>
+      )}
     </div>
   )
 }
