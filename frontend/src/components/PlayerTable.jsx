@@ -1,6 +1,6 @@
 const ROLES = ['P', 'D', 'C', 'A']
 
-export default function PlayerTable({ players, filters, onFiltersChange, managersById, onAssign }) {
+export default function PlayerTable({ players, filters, onFiltersChange, managersById, onAssign, onRemove }) {
   return (
     <div className="rounded-lg bg-white shadow-sm">
       <div className="flex flex-wrap gap-2 border-b border-slate-100 p-3">
@@ -61,7 +61,14 @@ export default function PlayerTable({ players, filters, onFiltersChange, manager
                   )}
                 </td>
                 <td className="px-3 py-2 text-right">
-                  {!p.is_taken && (
+                  {p.is_taken ? (
+                    <button
+                      onClick={() => onRemove(p)}
+                      className="rounded-md border border-slate-300 px-2.5 py-1 text-xs font-medium text-slate-500 hover:border-red-300 hover:text-red-600"
+                    >
+                      Rimuovi
+                    </button>
+                  ) : (
                     <button
                       onClick={() => onAssign(p)}
                       className="rounded-md bg-blue-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-blue-700"
