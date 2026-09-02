@@ -4,6 +4,7 @@ import AllManagersRoleGaps from '../components/AllManagersRoleGaps'
 import AssignPickModal from '../components/AssignPickModal'
 import ManagerBudgetPanel from '../components/ManagerBudgetPanel'
 import PlayerTable from '../components/PlayerTable'
+import RoleBudgetPanel from '../components/RoleBudgetPanel'
 import SuggestionsPanel from '../components/SuggestionsPanel'
 
 export default function Auction({ league }) {
@@ -14,6 +15,7 @@ export default function Auction({ league }) {
   const [players, setPlayers] = useState([])
   const [rosterPlayers, setRosterPlayers] = useState([])
   const [budgets, setBudgets] = useState([])
+  const [roleBudgets, setRoleBudgets] = useState([])
   const [allRoleGaps, setAllRoleGaps] = useState([])
   const [suggestions, setSuggestions] = useState([])
   const [assigningPlayer, setAssigningPlayer] = useState(null)
@@ -30,12 +32,14 @@ export default function Auction({ league }) {
   }, [league.id])
 
   const loadSidebar = useCallback(async () => {
-    const [b, g, s] = await Promise.all([
+    const [b, rb, g, s] = await Promise.all([
       api.getBudgets(league.id),
+      api.getBudgetByRole(league.id, me.id),
       api.getAllRoleGaps(league.id),
       api.getAllSuggestions(league.id, me.id),
     ])
     setBudgets(b)
+    setRoleBudgets(rb)
     setAllRoleGaps(g)
     setSuggestions(s)
   }, [league.id, me.id])
@@ -105,6 +109,7 @@ export default function Auction({ league }) {
 
       <div className="order-1 space-y-3 lg:order-2">
         <ManagerBudgetPanel budgets={budgets} players={rosterPlayers} />
+        <RoleBudgetPanel roleBudgets={roleBudgets} defenseModifier={league.defense_modifier} />
         <AllManagersRoleGaps managerGaps={allRoleGaps} />
         <SuggestionsPanel suggestions={suggestions} />
       </div>

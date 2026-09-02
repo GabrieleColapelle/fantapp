@@ -1,4 +1,10 @@
-from app.services.auction_logic import classify_deal, classify_fascia, role_gaps, suggest_players_by_fascia
+from app.services.auction_logic import (
+    classify_deal,
+    classify_fascia,
+    compute_role_budget,
+    role_gaps,
+    suggest_players_by_fascia,
+)
 
 
 def test_classify_deal_good_deal():
@@ -80,3 +86,35 @@ def test_suggest_players_by_fascia_respects_per_fascia_limit():
     ]
     result = suggest_players_by_fascia(players, role="A", remaining_budget=100, counts={"Scommesse": 2})
     assert len(result["Scommesse"]) == 2
+
+
+def test_compute_role_budget_targets_without_modifier_sum_to_100():
+    result = compute_role_budget({}, budget_total=500, defense_modifier=False)
+    assert sum(r["target_pct"] for r in result) == 100
+
+
+def test_compute_role_budget_defense_target_is_higher_with_modifier():
+    without = {r["role"]: r for r in compute_role_budget({}, 500, defense_modifier=False)}
+    with_mod = {r["role"]: r for r in compute_role_budget({}, 500, defense_modifier=True)}
+    assert with_mod["D"]["target_pct"] > without["D"]["target_pct"]
+    assert sum(r["target_pct"] for r in with_mod.values()) == 100
+
+
+def test_compute_role_budget_computes_credits_and_remaining():
+    result = compute_role_budget({"D": 50.0}, budget_total=500, defense_modifier=False)
+    defense = next(r for r in result if r["role"] == "D")
+    assert defense["target_credits"] == 95.0  # 19% of 500
+    assert defense["spent"] == 50.0
+    assert defense["remaining_recommended"] == 45.0
+    assert round(defense["pct_used"]) == 53  # 50/95
+
+
+def test_compute_role_budget_defaults_unspent_roles_to_zero():
+    result = compute_role_budget({}, budget_total=500, defense_modifier=False)
+    assert all(r["spent"] == 0.0 for r in result)
+
+
+def test_compute_role_budget_allows_negative_remaining_when_overspent():
+    result = compute_role_budget({"P": 100.0}, budget_total=500, defense_modifier=False)
+    keeper = next(r for r in result if r["role"] == "P")
+    assert keeper["remaining_recommended"] < 0

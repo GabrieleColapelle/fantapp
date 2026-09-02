@@ -21,6 +21,7 @@ class LeagueCreate(BaseModel):
     ruleset: str = "classic"
     budget_total: int = 500
     roster_config: dict[str, int] | None = None
+    defense_modifier: bool = False
     managers: list[ManagerCreate]
 
 
@@ -32,7 +33,12 @@ class LeagueOut(BaseModel):
     ruleset: str
     budget_total: int
     roster_config: dict[str, int]
+    defense_modifier: bool
     managers: list[ManagerOut]
+
+
+class DefenseModifierUpdate(BaseModel):
+    defense_modifier: bool
 
 
 class PlayerCreate(BaseModel):
@@ -131,6 +137,15 @@ class ManagerBudget(BaseModel):
     spent: float
     remaining: float
     players_taken: int
+
+
+class RoleBudget(BaseModel):
+    role: str
+    target_pct: float
+    target_credits: float
+    spent: float
+    remaining_recommended: float
+    pct_used: float
 
 
 class RoleGap(BaseModel):
