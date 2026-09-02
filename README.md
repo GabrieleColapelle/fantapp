@@ -40,12 +40,14 @@ cd backend
 
 ## Roadmap moduli
 
-- [x] **Modulo 1 — Assistente Asta**: import quotazioni da CSV, assegnazione
+- [x] **Modulo 1 — Assistente Asta**: import quotazioni da CSV o
+      automaticamente dal listone ufficiale Fantacalcio.it, assegnazione
       giocatori multi-manager, budget in tempo reale, alert buon
       affare/prezzo gonfiato, gap per ruolo, suggerimenti.
 - [ ] **Modulo 2 — Assistente Formazioni**: consigli sugli 11 titolari a ogni
       giornata.
-- [ ] **Modulo 3 — Aggiornamento dati**: import automatico di voti,
+- [ ] **Modulo 3 — Aggiornamento dati**: ✅ quotazioni (bottone "Aggiorna da
+      Fantacalcio.it" nella pagina Importa giocatori); mancano ancora voti,
       infortuni, calendario e probabili formazioni.
 - [ ] **Modulo 4 — Dashboard e gestione lega**: classifica, storico
       formazioni, watchlist, confronto giocatori.

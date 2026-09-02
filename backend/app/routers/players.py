@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app import models, schemas
 from app.database import get_db
 from app.services.csv_import import parse_players_csv
+from app.services.providers.fantacalcio_provider import ListoneFetchError, fetch_listone
 
 router = APIRouter(prefix="/api/leagues/{league_id}/players", tags=["players"])
 
@@ -79,3 +80,36 @@ async def import_players_csv(league_id: int, file: UploadFile, db: Session = Dep
     db.commit()
 
     return schemas.CsvImportResult(imported=len(rows), skipped=len(errors), errors=errors)
+
+
+@router.post("/refresh-listone", response_model=schemas.ListoneRefreshResult)
+def refresh_listone(league_id: int, db: Session = Depends(get_db)):
+    _get_league_or_404(league_id, db)
+    try:
+        rows = fetch_listone()
+    except ListoneFetchError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"{exc} — puoi comunque importare un CSV manualmente.",
+        ) from exc
+
+    existing_by_key = {
+        (p.name.lower(), p.team.lower()): p
+        for p in db.query(models.Player).filter(models.Player.league_id == league_id).all()
+    }
+
+    imported = 0
+    updated = 0
+    for row in rows:
+        key = (row["name"].lower(), row["team"].lower())
+        existing = existing_by_key.get(key)
+        if existing:
+            existing.role = row["role"]
+            existing.quotation = row["quotation"]
+            updated += 1
+        else:
+            db.add(models.Player(league_id=league_id, **row))
+            imported += 1
+    db.commit()
+
+    return schemas.ListoneRefreshResult(imported=imported, updated=updated, errors=[])
