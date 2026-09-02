@@ -18,6 +18,7 @@ def _to_player_out(player: models.Player) -> schemas.PlayerOut:
         team=player.team,
         quotation=player.quotation,
         tier=player.tier,
+        status=player.status,
         is_taken=pick is not None,
         manager_id=pick.manager_id if pick else None,
         price_paid=pick.price_paid if pick else None,
@@ -60,6 +61,19 @@ def add_player(league_id: int, payload: schemas.PlayerCreate, db: Session = Depe
     _get_league_or_404(league_id, db)
     player = models.Player(league_id=league_id, **payload.model_dump())
     db.add(player)
+    db.commit()
+    db.refresh(player)
+    return _to_player_out(player)
+
+
+@router.patch("/{player_id}/status", response_model=schemas.PlayerOut)
+def update_player_status(
+    league_id: int, player_id: int, payload: schemas.PlayerStatusUpdate, db: Session = Depends(get_db)
+):
+    player = db.get(models.Player, player_id)
+    if not player or player.league_id != league_id:
+        raise HTTPException(status_code=404, detail="Giocatore non trovato in questa lega")
+    player.status = payload.status
     db.commit()
     db.refresh(player)
     return _to_player_out(player)

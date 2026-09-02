@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { api } from './api/client'
 import Auction from './pages/Auction'
 import LeagueSetup from './pages/LeagueSetup'
+import Lineup from './pages/Lineup'
 import PlayerImport from './pages/PlayerImport'
 
 const LEAGUE_ID_KEY = 'fantapp.leagueId'
@@ -70,10 +71,22 @@ export default function App() {
         <TabButton active={tab === 'auction'} onClick={() => setTab('auction')}>
           Asta live
         </TabButton>
+        <TabButton active={tab === 'lineup'} onClick={() => setTab('lineup')}>
+          Formazioni
+        </TabButton>
       </div>
 
       {tab === 'import' && <PlayerImport league={league} onDone={() => setTab('auction')} />}
       {tab === 'auction' && <Auction league={league} />}
+      {tab === 'lineup' &&
+        (league.ruleset === 'mantra' ? (
+          <div className="rounded-lg bg-white p-6 text-sm text-slate-500 shadow-sm">
+            L'assistente formazioni per il regolamento Mantra arriverà in una prossima
+            iterazione. Per ora è disponibile solo per leghe Classic.
+          </div>
+        ) : (
+          <Lineup league={league} />
+        ))}
     </div>
   )
 }

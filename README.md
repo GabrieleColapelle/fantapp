@@ -44,8 +44,10 @@ cd backend
       automaticamente dal listone ufficiale Fantacalcio.it, assegnazione
       giocatori multi-manager, budget in tempo reale, alert buon
       affare/prezzo gonfiato, gap per ruolo, suggerimenti.
-- [ ] **Modulo 2 — Assistente Formazioni**: consigli sugli 11 titolari a ogni
-      giornata.
+- [x] **Modulo 2 — Assistente Formazioni** (solo Classic per ora): punteggio
+      di consigliabilità per giocatore (forma recente, casa/trasferta,
+      scontro diretto, rischio panchina/squalifica), formazione consigliata
+      con ballottaggi, salvataggio della formazione scelta.
 - [ ] **Modulo 3 — Aggiornamento dati**: ✅ quotazioni (bottone "Aggiorna da
       Fantacalcio.it" nella pagina Importa giocatori); mancano ancora voti,
       infortuni, calendario e probabili formazioni.
