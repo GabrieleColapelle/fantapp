@@ -60,6 +60,8 @@ class Player(Base):
     starter_probability: Mapped[float | None] = mapped_column(Float, nullable=True)
     mantra_role: Mapped[str] = mapped_column(String, default="")
     is_midfielder_bug: Mapped[bool] = mapped_column(Boolean, default=False)
+    penalty_rank: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    free_kick_rank: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     league: Mapped["League"] = relationship(back_populates="players")
     pick: Mapped["AuctionPick | None"] = relationship(back_populates="player", uselist=False)

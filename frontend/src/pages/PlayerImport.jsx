@@ -17,6 +17,9 @@ export default function PlayerImport({ league, onDone }) {
   const [lineupsResult, setLineupsResult] = useState(null)
   const [lineupsLoading, setLineupsLoading] = useState(false)
   const [lineupsError, setLineupsError] = useState('')
+  const [setPieceResult, setSetPieceResult] = useState(null)
+  const [setPieceLoading, setSetPieceLoading] = useState(false)
+  const [setPieceError, setSetPieceError] = useState('')
 
   const [manual, setManual] = useState({ name: '', role: 'P', team: '', quotation: '', tier: '' })
 
@@ -83,6 +86,19 @@ export default function PlayerImport({ league, onDone }) {
       setLineupsError(err.message)
     } finally {
       setLineupsLoading(false)
+    }
+  }
+
+  async function handleRefreshSetPieceTakers() {
+    setSetPieceLoading(true)
+    setSetPieceError('')
+    try {
+      const result = await api.refreshSetPieceTakers(league.id)
+      setSetPieceResult(result)
+    } catch (err) {
+      setSetPieceError(err.message)
+    } finally {
+      setSetPieceLoading(false)
     }
   }
 
@@ -176,6 +192,30 @@ export default function PlayerImport({ league, onDone }) {
           </p>
         )}
         {lineupsError && <p className="mt-3 text-sm text-red-600">{lineupsError}</p>}
+      </div>
+
+      <div className="rounded-lg bg-white p-4 shadow-sm sm:p-6">
+        <h2 className="mb-1 text-lg font-semibold text-slate-800">Rigoristi e battitori di punizioni</h2>
+        <p className="mb-3 text-sm text-slate-500">
+          Segna, per ogni giocatore già in lista, la posizione nella gerarchia rigori/punizioni
+          della sua squadra (1° = titolare del tiro) da Fantacalcio.it. Rieseguibile: azzera e
+          ricalcola le gerarchie a ogni click, per riflettere eventuali cambi.
+        </p>
+        <button
+          onClick={handleRefreshSetPieceTakers}
+          disabled={setPieceLoading}
+          className="rounded-md bg-orange-600 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-700 disabled:opacity-50"
+        >
+          {setPieceLoading ? 'Scaricamento...' : 'Aggiorna rigoristi'}
+        </button>
+        {setPieceResult && (
+          <p className="mt-3 text-sm text-slate-600">
+            <strong>{setPieceResult.penalty_takers_updated}</strong> rigoristi,{' '}
+            <strong>{setPieceResult.free_kick_takers_updated}</strong> battitori di punizioni
+            ({setPieceResult.unmatched} non abbinati).
+          </p>
+        )}
+        {setPieceError && <p className="mt-3 text-sm text-red-600">{setPieceError}</p>}
       </div>
 
       <div className="rounded-lg bg-white p-4 shadow-sm sm:p-6">

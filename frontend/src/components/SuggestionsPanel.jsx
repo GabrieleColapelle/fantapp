@@ -44,6 +44,16 @@ export default function SuggestionsPanel({ suggestions }) {
                             BUG
                           </span>
                         )}
+                        {s.penalty_rank != null && (
+                          <span
+                            title={`Rigorista ${s.penalty_rank === 1 ? 'titolare' : `di riserva (${s.penalty_rank}°)`}`}
+                            className={`rounded px-1 py-0.5 text-[9px] font-bold ${
+                              s.penalty_rank === 1 ? 'bg-orange-100 text-orange-700' : 'bg-orange-50 text-orange-500'
+                            }`}
+                          >
+                            ⚽{s.penalty_rank}
+                          </span>
+                        )}
                       </span>
                       <span className="text-right shrink-0">
                         <span className="font-medium text-slate-600">{s.quotation}</span>

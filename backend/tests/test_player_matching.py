@@ -1,4 +1,4 @@
-from app.services.player_matching import match_avg_prices, match_probable_lineups
+from app.services.player_matching import match_avg_prices, match_probable_lineups, match_set_piece_takers
 
 
 def player(id, name, team, role):
@@ -121,3 +121,44 @@ def test_match_probable_lineups_counts_unmatched_starters():
     lineups = {"starters": [lineup_starter("someoneelse", "Roma", "A", True, 90.0)], "unavailable": []}
     result = match_probable_lineups(players, lineups)
     assert result.unmatched == 1
+
+
+def penalty_row(surname_key, team, rank):
+    return {"surname_key": surname_key, "team": team, "rank": rank}
+
+
+def test_match_set_piece_takers_sets_penalty_rank():
+    players = [player(1, "Scamacca", "Atalanta", "A")]
+    data = {"penalties": [penalty_row("scamacca", "Atalanta", 1)], "free_kicks": []}
+    result = match_set_piece_takers(players, data)
+    assert result.penalty_rank == {1: 1}
+    assert result.free_kick_rank == {}
+
+
+def test_match_set_piece_takers_orders_multiple_takers():
+    players = [player(1, "Scamacca", "Atalanta", "A"), player(2, "Krstovic", "Atalanta", "A")]
+    data = {
+        "penalties": [penalty_row("scamacca", "Atalanta", 1), penalty_row("krstovic", "Atalanta", 2)],
+        "free_kicks": [],
+    }
+    result = match_set_piece_takers(players, data)
+    assert result.penalty_rank == {1: 1, 2: 2}
+
+
+def test_match_set_piece_takers_sets_free_kick_rank_independently():
+    players = [player(1, "Calhanoglu", "Inter", "C"), player(2, "Dimarco", "Inter", "D")]
+    data = {
+        "penalties": [penalty_row("calhanoglu", "Inter", 1)],
+        "free_kicks": [penalty_row("calhanoglu", "Inter", 1), penalty_row("dimarco", "Inter", 2)],
+    }
+    result = match_set_piece_takers(players, data)
+    assert result.penalty_rank == {1: 1}
+    assert result.free_kick_rank == {1: 1, 2: 2}
+
+
+def test_match_set_piece_takers_counts_unmatched_across_both_lists():
+    players = [player(1, "Malen", "Roma", "A")]
+    data = {"penalties": [penalty_row("someoneelse", "Roma", 1)], "free_kicks": [penalty_row("another", "Roma", 1)]}
+    result = match_set_piece_takers(players, data)
+    assert result.penalty_rank == {}
+    assert result.unmatched == 2
