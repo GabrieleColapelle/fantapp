@@ -121,6 +121,11 @@ class SuggestedPlayer(BaseModel):
     quotation: float
 
 
+class FasciaSuggestions(BaseModel):
+    fascia: str
+    players: list[SuggestedPlayer]
+
+
 class MatchStatCreate(BaseModel):
     player_id: int
     matchday: int
