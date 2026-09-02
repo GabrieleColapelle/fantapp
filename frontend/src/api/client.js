@@ -35,6 +35,8 @@ export const api = {
   refreshListone: (leagueId) => request(`/leagues/${leagueId}/players/refresh-listone`, { method: 'POST' }),
   refreshAvgPrices: (leagueId) => request(`/leagues/${leagueId}/players/refresh-avg-prices`, { method: 'POST' }),
   refreshLineups: (leagueId) => request(`/leagues/${leagueId}/players/refresh-lineups`, { method: 'POST' }),
+  refreshSetPieceTakers: (leagueId) =>
+    request(`/leagues/${leagueId}/players/refresh-set-piece-takers`, { method: 'POST' }),
 
   createPick: (leagueId, payload) =>
     request(`/leagues/${leagueId}/auction/picks`, { method: 'POST', body: JSON.stringify(payload) }),

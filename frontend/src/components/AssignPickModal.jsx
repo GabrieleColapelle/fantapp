@@ -38,6 +38,16 @@ export default function AssignPickModal({ player, managers, budgets, onConfirm, 
               BUG
             </span>
           )}
+          {player.penalty_rank != null && (
+            <span
+              title={`Rigorista ${player.penalty_rank === 1 ? 'titolare' : `di riserva (${player.penalty_rank}°)`}`}
+              className={`ml-2 rounded px-1.5 py-0.5 text-[10px] font-bold align-middle ${
+                player.penalty_rank === 1 ? 'bg-orange-100 text-orange-700' : 'bg-orange-50 text-orange-500'
+              }`}
+            >
+              ⚽{player.penalty_rank}
+            </span>
+          )}
         </h3>
         <p className="mb-4 text-xs text-slate-500">
           {player.role} · {player.team} · Quotazione {player.quotation}

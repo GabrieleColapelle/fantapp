@@ -55,6 +55,8 @@ class PlayerOut(BaseModel):
     starter_probability: float | None = None
     mantra_role: str = ""
     is_midfielder_bug: bool = False
+    penalty_rank: int | None = None
+    free_kick_rank: int | None = None
     tier: str
     status: str
     is_taken: bool
@@ -88,6 +90,13 @@ class AvgPriceRefreshResult(BaseModel):
 class LineupsRefreshResult(BaseModel):
     starters_updated: int
     status_updated: int
+    unmatched: int
+    errors: list[str]
+
+
+class SetPieceTakersRefreshResult(BaseModel):
+    penalty_takers_updated: int
+    free_kick_takers_updated: int
     unmatched: int
     errors: list[str]
 
@@ -147,6 +156,8 @@ class SuggestedPlayer(BaseModel):
     avg_auction_price: float | None = None
     starter_probability: float | None = None
     is_midfielder_bug: bool = False
+    penalty_rank: int | None = None
+    free_kick_rank: int | None = None
 
 
 class FasciaSuggestions(BaseModel):

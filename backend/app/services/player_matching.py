@@ -122,3 +122,39 @@ def match_probable_lineups(players: list[dict], lineups: dict) -> LineupMatchRes
             status[player["id"]] = row["reason"]
 
     return LineupMatchResult(starter_probability=starter_probability, status=status, unmatched=unmatched)
+
+
+@dataclass
+class SetPieceTakersMatchResult:
+    penalty_rank: dict[int, int]  # player_id -> rank (1 = first choice)
+    free_kick_rank: dict[int, int]
+    unmatched: int
+
+
+def _match_ranked_rows(index: "PlayerNameIndex", rows: list[dict]) -> tuple[dict[int, int], int]:
+    rank_by_player: dict[int, int] = {}
+    unmatched = 0
+    for row in rows:
+        player = index.resolve(row["surname_key"], row["team"], role=None)
+        if player:
+            rank_by_player[player["id"]] = row["rank"]
+        else:
+            unmatched += 1
+    return rank_by_player, unmatched
+
+
+def match_set_piece_takers(players: list[dict], data: dict) -> SetPieceTakersMatchResult:
+    """`players`: existing league players as dicts with id/name/team (role
+    not needed here — the source doesn't carry one, so matching relies on
+    name+team alone; a genuinely ambiguous name+team is left unmatched
+    rather than guessed, same as everywhere else). `data`: the dict
+    returned by fetch_set_piece_takers() (penalties + free_kicks)."""
+    index = PlayerNameIndex(players)
+    penalty_rank, unmatched_penalties = _match_ranked_rows(index, data["penalties"])
+    free_kick_rank, unmatched_free_kicks = _match_ranked_rows(index, data["free_kicks"])
+
+    return SetPieceTakersMatchResult(
+        penalty_rank=penalty_rank,
+        free_kick_rank=free_kick_rank,
+        unmatched=unmatched_penalties + unmatched_free_kicks,
+    )

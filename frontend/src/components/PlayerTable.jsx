@@ -66,6 +66,24 @@ export default function PlayerTable({ players, filters, onFiltersChange, manager
                       BUG
                     </span>
                   )}
+                  {p.penalty_rank != null && (
+                    <span
+                      title={`Rigorista ${p.penalty_rank === 1 ? 'titolare' : `di riserva (${p.penalty_rank}°)`}`}
+                      className={`ml-1 rounded px-1 py-0.5 text-[9px] font-bold ${
+                        p.penalty_rank === 1 ? 'bg-orange-100 text-orange-700' : 'bg-orange-50 text-orange-500'
+                      }`}
+                    >
+                      ⚽{p.penalty_rank}
+                    </span>
+                  )}
+                  {p.free_kick_rank != null && (
+                    <span
+                      title={`Battitore punizioni ${p.free_kick_rank === 1 ? 'titolare' : `di riserva (${p.free_kick_rank}°)`}`}
+                      className="ml-1 rounded bg-sky-50 px-1 py-0.5 text-[9px] font-bold text-sky-600"
+                    >
+                      P{p.free_kick_rank}
+                    </span>
+                  )}
                 </td>
                 <td className="px-3 py-2">{p.role}</td>
                 <td className="px-3 py-2">{p.team}</td>

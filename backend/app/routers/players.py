@@ -4,13 +4,14 @@ from sqlalchemy.orm import Session
 from app import models, schemas
 from app.database import get_db
 from app.services.csv_import import parse_players_csv
-from app.services.player_matching import match_avg_prices, match_probable_lineups
+from app.services.player_matching import match_avg_prices, match_probable_lineups, match_set_piece_takers
 from app.services.providers.fantacalcio_online_provider import (
     AveragePriceFetchError,
     fetch_average_prices,
     select_price_column,
 )
 from app.services.providers.fantacalcio_provider import ListoneFetchError, fetch_listone
+from app.services.providers.penalty_takers_provider import PenaltyTakersFetchError, fetch_set_piece_takers
 from app.services.providers.probable_lineups_provider import LineupsFetchError, fetch_probable_lineups
 
 router = APIRouter(prefix="/api/leagues/{league_id}/players", tags=["players"])
@@ -28,6 +29,8 @@ def _to_player_out(player: models.Player) -> schemas.PlayerOut:
         starter_probability=player.starter_probability,
         mantra_role=player.mantra_role,
         is_midfielder_bug=player.is_midfielder_bug,
+        penalty_rank=player.penalty_rank,
+        free_kick_rank=player.free_kick_rank,
         tier=player.tier,
         status=player.status,
         is_taken=pick is not None,
@@ -187,6 +190,40 @@ def refresh_lineups(league_id: int, db: Session = Depends(get_db)):
     return schemas.LineupsRefreshResult(
         starters_updated=len(result.starter_probability),
         status_updated=len(result.status),
+        unmatched=result.unmatched,
+        errors=[],
+    )
+
+
+@router.post("/refresh-set-piece-takers", response_model=schemas.SetPieceTakersRefreshResult)
+def refresh_set_piece_takers(league_id: int, db: Session = Depends(get_db)):
+    _get_league_or_404(league_id, db)
+    try:
+        data = fetch_set_piece_takers()
+    except PenaltyTakersFetchError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    league_players = db.query(models.Player).filter(models.Player.league_id == league_id).all()
+    player_dicts = [{"id": p.id, "name": p.name, "team": p.team} for p in league_players]
+    players_by_id = {p.id: p for p in league_players}
+
+    # Reset ranks first: a player who lost the role (e.g. a new signing
+    # took over) must stop showing a stale rank instead of keeping it
+    # forever once matched once.
+    for p in league_players:
+        p.penalty_rank = None
+        p.free_kick_rank = None
+
+    result = match_set_piece_takers(player_dicts, data)
+    for player_id, rank in result.penalty_rank.items():
+        players_by_id[player_id].penalty_rank = rank
+    for player_id, rank in result.free_kick_rank.items():
+        players_by_id[player_id].free_kick_rank = rank
+    db.commit()
+
+    return schemas.SetPieceTakersRefreshResult(
+        penalty_takers_updated=len(result.penalty_rank),
+        free_kick_takers_updated=len(result.free_kick_rank),
         unmatched=result.unmatched,
         errors=[],
     )
