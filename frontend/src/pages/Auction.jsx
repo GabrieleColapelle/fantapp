@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { api } from '../api/client'
+import AllManagersRoleGaps from '../components/AllManagersRoleGaps'
 import AssignPickModal from '../components/AssignPickModal'
 import ManagerBudgetPanel from '../components/ManagerBudgetPanel'
 import PlayerTable from '../components/PlayerTable'
-import RoleGapPanel from '../components/RoleGapPanel'
 import SuggestionsPanel from '../components/SuggestionsPanel'
 
 export default function Auction({ league }) {
@@ -14,7 +14,7 @@ export default function Auction({ league }) {
   const [players, setPlayers] = useState([])
   const [rosterPlayers, setRosterPlayers] = useState([])
   const [budgets, setBudgets] = useState([])
-  const [roleGaps, setRoleGaps] = useState([])
+  const [allRoleGaps, setAllRoleGaps] = useState([])
   const [suggestionRole, setSuggestionRole] = useState('P')
   const [suggestions, setSuggestions] = useState([])
   const [assigningPlayer, setAssigningPlayer] = useState(null)
@@ -33,11 +33,11 @@ export default function Auction({ league }) {
   const loadSidebar = useCallback(async () => {
     const [b, g, s] = await Promise.all([
       api.getBudgets(league.id),
-      api.getRoleGaps(league.id, me.id),
+      api.getAllRoleGaps(league.id),
       api.getSuggestions(league.id, me.id, suggestionRole),
     ])
     setBudgets(b)
-    setRoleGaps(g)
+    setAllRoleGaps(g)
     setSuggestions(s)
   }, [league.id, me.id, suggestionRole])
 
@@ -106,7 +106,7 @@ export default function Auction({ league }) {
 
       <div className="order-1 space-y-3 lg:order-2">
         <ManagerBudgetPanel budgets={budgets} players={rosterPlayers} />
-        <RoleGapPanel gaps={roleGaps} />
+        <AllManagersRoleGaps managerGaps={allRoleGaps} />
         <SuggestionsPanel role={suggestionRole} onRoleChange={setSuggestionRole} suggestions={suggestions} />
       </div>
 
@@ -114,6 +114,7 @@ export default function Auction({ league }) {
         <AssignPickModal
           player={assigningPlayer}
           managers={league.managers}
+          budgets={budgets}
           onConfirm={handleConfirmPick}
           onClose={() => setAssigningPlayer(null)}
         />
