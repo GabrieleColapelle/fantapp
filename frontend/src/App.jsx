@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from './api/client'
+import ManagerSettingsModal from './components/ManagerSettingsModal'
 import Auction from './pages/Auction'
 import LeagueSetup from './pages/LeagueSetup'
 import Lineup from './pages/Lineup'
@@ -11,6 +12,7 @@ export default function App() {
   const [league, setLeague] = useState(null)
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState('import')
+  const [showManagers, setShowManagers] = useState(false)
 
   useEffect(() => {
     const storedId = localStorage.getItem(LEAGUE_ID_KEY)
@@ -36,6 +38,10 @@ export default function App() {
     setTab('import')
   }
 
+  async function refreshLeague() {
+    setLeague(await api.getLeague(league.id))
+  }
+
   if (loading) {
     return <div className="p-6 text-slate-500">Caricamento...</div>
   }
@@ -59,10 +65,23 @@ export default function App() {
             {league.ruleset === 'mantra' ? 'Mantra' : 'Classic'} · Budget {league.budget_total} crediti
           </p>
         </div>
-        <button onClick={handleChangeLeague} className="text-sm text-slate-500 underline">
-          Cambia lega
-        </button>
+        <div className="flex items-center gap-3">
+          <button onClick={() => setShowManagers(true)} className="text-sm text-blue-600 underline">
+            Manager ({league.managers.length})
+          </button>
+          <button onClick={handleChangeLeague} className="text-sm text-slate-500 underline">
+            Cambia lega
+          </button>
+        </div>
       </div>
+
+      {showManagers && (
+        <ManagerSettingsModal
+          league={league}
+          onClose={() => setShowManagers(false)}
+          onChanged={refreshLeague}
+        />
+      )}
 
       <div className="mb-4 flex gap-2">
         <TabButton active={tab === 'import'} onClick={() => setTab('import')}>

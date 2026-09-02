@@ -14,6 +14,12 @@ async function request(path, options = {}) {
 export const api = {
   createLeague: (payload) => request('/leagues', { method: 'POST', body: JSON.stringify(payload) }),
   getLeague: (leagueId) => request(`/leagues/${leagueId}`),
+  addManager: (leagueId, payload) =>
+    request(`/leagues/${leagueId}/managers`, { method: 'POST', body: JSON.stringify(payload) }),
+  updateManager: (leagueId, managerId, payload) =>
+    request(`/leagues/${leagueId}/managers/${managerId}`, { method: 'PATCH', body: JSON.stringify(payload) }),
+  deleteManager: (leagueId, managerId) =>
+    request(`/leagues/${leagueId}/managers/${managerId}`, { method: 'DELETE' }),
 
   listPlayers: (leagueId, params = {}) => {
     const qs = new URLSearchParams(params).toString()
