@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from app import models, schemas
 from app.database import get_db
-from app.services.auction_logic import classify_deal, role_gaps, suggest_players
+from app.services.auction_logic import FASCE, classify_deal, role_gaps, suggest_players_by_fascia
 
 router = APIRouter(prefix="/api/leagues/{league_id}/auction", tags=["auction"])
 
@@ -93,7 +93,7 @@ def get_role_gaps(league_id: int, manager_id: int, db: Session = Depends(get_db)
     return role_gaps(league.roster_config, filled_by_role)
 
 
-@router.get("/suggestions", response_model=list[schemas.SuggestedPlayer])
+@router.get("/suggestions", response_model=list[schemas.FasciaSuggestions])
 def get_suggestions(league_id: int, manager_id: int, role: str, db: Session = Depends(get_db)):
     _get_league_or_404(league_id, db)
     manager = db.get(models.Manager, manager_id)
@@ -114,5 +114,8 @@ def get_suggestions(league_id: int, manager_id: int, role: str, db: Session = De
         if p.pick is None
     ]
 
-    suggestions = suggest_players(available_dicts, role.upper(), remaining_budget)
-    return [schemas.SuggestedPlayer(**s) for s in suggestions]
+    grouped = suggest_players_by_fascia(available_dicts, role.upper(), remaining_budget)
+    return [
+        schemas.FasciaSuggestions(fascia=name, players=[schemas.SuggestedPlayer(**p) for p in grouped[name]])
+        for name, _, _ in FASCE
+    ]

@@ -50,16 +50,47 @@ def role_gaps(roster_config: dict[str, int], filled_by_role: dict[str, int]) -> 
     return gaps
 
 
-def suggest_players(
+# Standard community price tiers for the Classic auction (based on quotation
+# alone, since that's what we have without historical fantamedia data):
+# https://sportnews.betflag.it/asta-fantacalcio-2026-27-consigli-strategie-giocatori-da-comprare/
+FASCE = [
+    ("Top", 30, float("inf")),
+    ("Semitop", 15, 29),
+    ("Buoni", 6, 14),
+    ("Scommesse", 1, 5),
+]
+
+DEFAULT_FASCIA_COUNTS = {"Top": 3, "Semitop": 4, "Buoni": 4, "Scommesse": 3}
+
+
+def classify_fascia(quotation: float) -> str | None:
+    for name, low, high in FASCE:
+        if low <= quotation <= high:
+            return name
+    return None
+
+
+def suggest_players_by_fascia(
     available_players: list[dict],
     role: str,
     remaining_budget: float,
-    limit: int = 5,
-) -> list[dict]:
-    """Top-quotation available players for `role` that fit within the
-    manager's remaining budget, best (most expensive/valuable) first."""
+    counts: dict[str, int] | None = None,
+) -> dict[str, list[dict]]:
+    """Available players for `role` within the manager's remaining budget,
+    grouped by price fascia (Top/Semitop/Buoni/Scommesse) so a manager can
+    see options spread across the slots they still need to fill, not just
+    the single most expensive handful. Best (most expensive) first within
+    each fascia."""
+    counts = counts or DEFAULT_FASCIA_COUNTS
     candidates = [
         p for p in available_players if p["role"] == role and p["quotation"] <= remaining_budget
     ]
     candidates.sort(key=lambda p: p["quotation"], reverse=True)
-    return candidates[:limit]
+
+    grouped: dict[str, list[dict]] = {name: [] for name, _, _ in FASCE}
+    for p in candidates:
+        fascia = classify_fascia(p["quotation"])
+        if fascia is not None and len(grouped[fascia]) < counts.get(fascia, 0):
+            grouped[fascia].append(p)
+
+    return grouped
