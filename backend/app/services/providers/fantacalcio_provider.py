@@ -61,7 +61,11 @@ def _parse_listone_html(html: str) -> list[dict]:
     players: list[dict] = []
     for row in rows:
         role = (row.get("data-filter-role-classic") or "").upper()
-        name_el = row.select_one(".player-name")
+        # The name link only (".player-name a span"), not the whole
+        # ".player-name" cell: that cell also holds a sibling "*" marker
+        # (title "Non gioca più in Serie A") for players no longer active,
+        # which would otherwise get glued onto the name (e.g. "Leao*").
+        name_el = row.select_one(".player-name a span") or row.select_one(".player-name")
         team_el = row.select_one(".player-team")
         price_el = row.select_one(".player-classic-current-price")
 

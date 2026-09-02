@@ -15,6 +15,14 @@ def test_parse_listone_extracts_known_fields():
     assert "Meret" in names
 
 
+def test_parse_listone_strips_out_of_game_marker_from_name():
+    # Malen's row has a sibling "*" marker (title "Non gioca più in Serie
+    # A") that must not get glued onto the name.
+    players = _parse_listone_html(FIXTURE_HTML)
+    malen = next(p for p in players if p["name"] == "Malen")
+    assert "*" not in malen["name"]
+
+
 def test_parse_listone_maps_team_abbreviation_to_full_name():
     players = _parse_listone_html(FIXTURE_HTML)
     meret = next(p for p in players if p["name"] == "Meret")
