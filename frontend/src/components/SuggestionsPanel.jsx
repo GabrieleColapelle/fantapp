@@ -7,6 +7,13 @@ const FASCIA_ICONS = {
   Scommesse: '🎲',
 }
 
+function starterDotClass(probability) {
+  if (probability == null) return 'bg-slate-300'
+  if (probability >= 70) return 'bg-green-500'
+  if (probability >= 40) return 'bg-amber-500'
+  return 'bg-red-500'
+}
+
 export default function SuggestionsPanel({ role, onRoleChange, suggestions }) {
   return (
     <div className="rounded-lg bg-white p-4 shadow-sm">
@@ -38,6 +45,10 @@ export default function SuggestionsPanel({ role, onRoleChange, suggestions }) {
                 {group.players.map((s) => (
                   <li key={s.player_id} className="flex justify-between text-xs">
                     <span className="text-slate-700">
+                      <span
+                        title={s.starter_probability != null ? `${s.starter_probability.toFixed(0)}% titolare` : 'Titolarità sconosciuta'}
+                        className={`mr-1 inline-block h-1.5 w-1.5 rounded-full ${starterDotClass(s.starter_probability)}`}
+                      />
                       {s.name} <span className="text-slate-400">({s.team})</span>
                     </span>
                     <span className="text-right">

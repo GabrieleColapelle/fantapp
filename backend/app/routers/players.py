@@ -4,13 +4,14 @@ from sqlalchemy.orm import Session
 from app import models, schemas
 from app.database import get_db
 from app.services.csv_import import parse_players_csv
-from app.services.player_matching import match_avg_prices
+from app.services.player_matching import match_avg_prices, match_probable_lineups
 from app.services.providers.fantacalcio_online_provider import (
     AveragePriceFetchError,
     fetch_average_prices,
     select_price_column,
 )
 from app.services.providers.fantacalcio_provider import ListoneFetchError, fetch_listone
+from app.services.providers.probable_lineups_provider import LineupsFetchError, fetch_probable_lineups
 
 router = APIRouter(prefix="/api/leagues/{league_id}/players", tags=["players"])
 
@@ -24,6 +25,7 @@ def _to_player_out(player: models.Player) -> schemas.PlayerOut:
         team=player.team,
         quotation=player.quotation,
         avg_auction_price=player.avg_auction_price,
+        starter_probability=player.starter_probability,
         tier=player.tier,
         status=player.status,
         is_taken=pick is not None,
@@ -157,3 +159,30 @@ def refresh_avg_prices(league_id: int, db: Session = Depends(get_db)):
     db.commit()
 
     return schemas.AvgPriceRefreshResult(updated=len(result.matched), unmatched=result.unmatched, errors=[])
+
+
+@router.post("/refresh-lineups", response_model=schemas.LineupsRefreshResult)
+def refresh_lineups(league_id: int, db: Session = Depends(get_db)):
+    _get_league_or_404(league_id, db)
+    try:
+        lineups = fetch_probable_lineups()
+    except LineupsFetchError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    league_players = db.query(models.Player).filter(models.Player.league_id == league_id).all()
+    player_dicts = [{"id": p.id, "name": p.name, "team": p.team, "role": p.role} for p in league_players]
+    players_by_id = {p.id: p for p in league_players}
+
+    result = match_probable_lineups(player_dicts, lineups)
+    for player_id, probability in result.starter_probability.items():
+        players_by_id[player_id].starter_probability = probability
+    for player_id, status in result.status.items():
+        players_by_id[player_id].status = status
+    db.commit()
+
+    return schemas.LineupsRefreshResult(
+        starters_updated=len(result.starter_probability),
+        status_updated=len(result.status),
+        unmatched=result.unmatched,
+        errors=[],
+    )

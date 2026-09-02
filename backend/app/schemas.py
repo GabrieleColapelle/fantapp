@@ -52,6 +52,7 @@ class PlayerOut(BaseModel):
     team: str
     quotation: float
     avg_auction_price: float | None = None
+    starter_probability: float | None = None
     tier: str
     status: str
     is_taken: bool
@@ -78,6 +79,13 @@ class ListoneRefreshResult(BaseModel):
 
 class AvgPriceRefreshResult(BaseModel):
     updated: int
+    unmatched: int
+    errors: list[str]
+
+
+class LineupsRefreshResult(BaseModel):
+    starters_updated: int
+    status_updated: int
     unmatched: int
     errors: list[str]
 
@@ -135,6 +143,7 @@ class SuggestedPlayer(BaseModel):
     role: str
     quotation: float
     avg_auction_price: float | None = None
+    starter_probability: float | None = None
 
 
 class FasciaSuggestions(BaseModel):
