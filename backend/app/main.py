@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import Base, engine
-from app.routers import auction, leagues, players
+from app.routers import auction, leagues, lineup, players
 
 Base.metadata.create_all(bind=engine)
 
@@ -18,6 +18,7 @@ app.add_middleware(
 app.include_router(leagues.router)
 app.include_router(players.router)
 app.include_router(auction.router)
+app.include_router(lineup.router)
 
 
 @app.get("/api/health")

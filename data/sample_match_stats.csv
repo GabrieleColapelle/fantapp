@@ -1,0 +1,31 @@
+Giornata,Nome,Voto,Avversario,Casa
+1,Meret,6,Verona,S
+2,Meret,6.5,Torino,N
+3,Meret,7,Bologna,S
+4,Meret,,Roma,N
+5,Meret,6,Lazio,S
+1,Osimhen,7,Verona,S
+2,Osimhen,6.5,Torino,N
+3,Osimhen,8,Bologna,S
+4,Osimhen,7.5,Roma,N
+5,Osimhen,9,Lazio,S
+1,Buongiorno,6,Verona,S
+2,Buongiorno,6,Torino,N
+3,Buongiorno,6.5,Bologna,S
+4,Buongiorno,6,Roma,N
+5,Buongiorno,7,Lazio,S
+1,Lautaro Martinez,7,Genoa,S
+2,Lautaro Martinez,6.5,Fiorentina,N
+3,Lautaro Martinez,8,Empoli,S
+4,Lautaro Martinez,6,Milan,N
+5,Lautaro Martinez,7.5,Cagliari,S
+1,Barella,6.5,Genoa,S
+2,Barella,6,Fiorentina,N
+3,Barella,7,Empoli,S
+4,Barella,6.5,Milan,N
+5,Barella,6.5,Cagliari,S
+1,Vlahovic,6,Udinese,S
+2,Vlahovic,,Salernitana,N
+3,Vlahovic,6,Frosinone,S
+4,Vlahovic,,Sassuolo,N
+5,Vlahovic,6.5,Lecce,S
