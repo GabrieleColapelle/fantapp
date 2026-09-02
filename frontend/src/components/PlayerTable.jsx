@@ -56,7 +56,17 @@ export default function PlayerTable({ players, filters, onFiltersChange, manager
           <tbody className="divide-y divide-slate-100">
             {players.map((p) => (
               <tr key={p.id} className={p.is_taken ? 'bg-slate-50 text-slate-400' : ''}>
-                <td className="px-3 py-2 font-medium">{p.name}</td>
+                <td className="px-3 py-2 font-medium">
+                  {p.name}
+                  {p.is_midfielder_bug && (
+                    <span
+                      title="Ruolo Mantra più avanzato: centrocampista con potenziale da attaccante"
+                      className="ml-1 rounded bg-fuchsia-100 px-1 py-0.5 text-[9px] font-bold text-fuchsia-700"
+                    >
+                      BUG
+                    </span>
+                  )}
+                </td>
                 <td className="px-3 py-2">{p.role}</td>
                 <td className="px-3 py-2">{p.team}</td>
                 <td className="px-3 py-2">{p.quotation}</td>

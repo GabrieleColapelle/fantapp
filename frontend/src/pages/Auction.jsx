@@ -15,7 +15,6 @@ export default function Auction({ league }) {
   const [rosterPlayers, setRosterPlayers] = useState([])
   const [budgets, setBudgets] = useState([])
   const [allRoleGaps, setAllRoleGaps] = useState([])
-  const [suggestionRole, setSuggestionRole] = useState('P')
   const [suggestions, setSuggestions] = useState([])
   const [assigningPlayer, setAssigningPlayer] = useState(null)
   const [dealBanner, setDealBanner] = useState(null)
@@ -34,12 +33,12 @@ export default function Auction({ league }) {
     const [b, g, s] = await Promise.all([
       api.getBudgets(league.id),
       api.getAllRoleGaps(league.id),
-      api.getSuggestions(league.id, me.id, suggestionRole),
+      api.getAllSuggestions(league.id, me.id),
     ])
     setBudgets(b)
     setAllRoleGaps(g)
     setSuggestions(s)
-  }, [league.id, me.id, suggestionRole])
+  }, [league.id, me.id])
 
   useEffect(() => {
     loadPlayers()
@@ -107,7 +106,7 @@ export default function Auction({ league }) {
       <div className="order-1 space-y-3 lg:order-2">
         <ManagerBudgetPanel budgets={budgets} players={rosterPlayers} />
         <AllManagersRoleGaps managerGaps={allRoleGaps} />
-        <SuggestionsPanel role={suggestionRole} onRoleChange={setSuggestionRole} suggestions={suggestions} />
+        <SuggestionsPanel suggestions={suggestions} />
       </div>
 
       {assigningPlayer && (

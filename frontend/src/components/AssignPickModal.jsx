@@ -28,7 +28,17 @@ export default function AssignPickModal({ player, managers, budgets, onConfirm, 
   return (
     <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/40 p-4">
       <div className="w-full max-w-sm rounded-lg bg-white p-5 shadow-xl">
-        <h3 className="mb-1 text-lg font-semibold text-slate-800">{player.name}</h3>
+        <h3 className="mb-1 text-lg font-semibold text-slate-800">
+          {player.name}
+          {player.is_midfielder_bug && (
+            <span
+              title="Ruolo Mantra più avanzato: centrocampista con potenziale da attaccante"
+              className="ml-2 rounded bg-fuchsia-100 px-1.5 py-0.5 text-[10px] font-bold text-fuchsia-700 align-middle"
+            >
+              BUG
+            </span>
+          )}
+        </h3>
         <p className="mb-4 text-xs text-slate-500">
           {player.role} · {player.team} · Quotazione {player.quotation}
           {player.avg_auction_price != null && ` · Media reale ${player.avg_auction_price.toFixed(1)}`}

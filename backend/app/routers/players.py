@@ -26,6 +26,8 @@ def _to_player_out(player: models.Player) -> schemas.PlayerOut:
         quotation=player.quotation,
         avg_auction_price=player.avg_auction_price,
         starter_probability=player.starter_probability,
+        mantra_role=player.mantra_role,
+        is_midfielder_bug=player.is_midfielder_bug,
         tier=player.tier,
         status=player.status,
         is_taken=pick is not None,
@@ -130,6 +132,8 @@ def refresh_listone(league_id: int, db: Session = Depends(get_db)):
         if existing:
             existing.role = row["role"]
             existing.quotation = row["quotation"]
+            existing.mantra_role = row["mantra_role"]
+            existing.is_midfielder_bug = row["is_midfielder_bug"]
             updated += 1
         else:
             db.add(models.Player(league_id=league_id, **row))

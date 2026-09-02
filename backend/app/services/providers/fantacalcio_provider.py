@@ -43,6 +43,14 @@ TEAM_ABBREVIATIONS = {
 
 VALID_ROLES = {"P", "D", "C", "A"}
 
+# Mantra sub-roles that mean "plays in an advanced/attacking position",
+# regardless of the coarser Classic role: a player listed as Classic "C"
+# (centrocampista) whose Mantra tags include any of these is a known
+# "bug del listone" in fantacalcio slang — cheaper to buy as a midfielder
+# but with an attacker's scoring upside (trequartista/ala/attaccante).
+# https://calciodangolo.com/fantacalcio-bug-listone-2026-2027-wesley-pulisic-occasioni/
+ADVANCED_MANTRA_TAGS = {"t", "w", "a", "pc"}
+
 
 class ListoneFetchError(Exception):
     """Raised when the listone can't be fetched or parsed. The caller
@@ -68,6 +76,7 @@ def _parse_listone_html(html: str) -> list[dict]:
         name_el = row.select_one(".player-name a span") or row.select_one(".player-name")
         team_el = row.select_one(".player-team")
         price_el = row.select_one(".player-classic-current-price")
+        mantra_role = row.get("data-filter-role-mantra") or ""
 
         if role not in VALID_ROLES or not name_el or not team_el:
             continue
@@ -83,12 +92,17 @@ def _parse_listone_html(html: str) -> list[dict]:
         except ValueError:
             quotation = 0.0
 
+        mantra_tags = set(mantra_role.split("|"))
+        is_bug = role == "C" and bool(mantra_tags & ADVANCED_MANTRA_TAGS)
+
         players.append(
             {
                 "name": name,
                 "role": role,
                 "team": TEAM_ABBREVIATIONS.get(team_abbr, team_abbr),
                 "quotation": quotation,
+                "mantra_role": mantra_role,
+                "is_midfielder_bug": is_bug,
             }
         )
 
