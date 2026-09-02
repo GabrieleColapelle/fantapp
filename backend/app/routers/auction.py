@@ -29,6 +29,14 @@ def create_pick(league_id: int, payload: schemas.AuctionPickCreate, db: Session 
     if not manager or manager.league_id != league_id:
         raise HTTPException(status_code=404, detail="Manager non trovato in questa lega")
 
+    spent = sum(p.price_paid for p in manager.picks)
+    remaining_budget = manager.league.budget_total - spent
+    if payload.price_paid > remaining_budget:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Budget insufficiente: a {manager.name} restano {remaining_budget:g} crediti",
+        )
+
     pick = models.AuctionPick(
         league_id=league_id,
         manager_id=payload.manager_id,
@@ -91,6 +99,26 @@ def get_role_gaps(league_id: int, manager_id: int, db: Session = Depends(get_db)
         filled_by_role[pick.player.role] = filled_by_role.get(pick.player.role, 0) + 1
 
     return role_gaps(league.roster_config, filled_by_role)
+
+
+@router.get("/role-gaps/all", response_model=list[schemas.ManagerRoleGaps])
+def get_all_role_gaps(league_id: int, db: Session = Depends(get_db)):
+    league = _get_league_or_404(league_id, db)
+
+    result = []
+    for manager in league.managers:
+        filled_by_role: dict[str, int] = {}
+        for pick in manager.picks:
+            filled_by_role[pick.player.role] = filled_by_role.get(pick.player.role, 0) + 1
+        result.append(
+            schemas.ManagerRoleGaps(
+                manager_id=manager.id,
+                name=manager.name,
+                is_me=manager.is_me,
+                gaps=role_gaps(league.roster_config, filled_by_role),
+            )
+        )
+    return result
 
 
 @router.get("/suggestions", response_model=list[schemas.FasciaSuggestions])

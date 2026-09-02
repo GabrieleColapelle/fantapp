@@ -121,6 +121,13 @@ class RoleGap(BaseModel):
     remaining: int
 
 
+class ManagerRoleGaps(BaseModel):
+    manager_id: int
+    name: str
+    is_me: bool
+    gaps: list[RoleGap]
+
+
 class SuggestedPlayer(BaseModel):
     player_id: int
     name: str

@@ -42,6 +42,7 @@ export const api = {
   getBudgets: (leagueId) => request(`/leagues/${leagueId}/auction/budgets`),
   getRoleGaps: (leagueId, managerId) =>
     request(`/leagues/${leagueId}/auction/role-gaps?manager_id=${managerId}`),
+  getAllRoleGaps: (leagueId) => request(`/leagues/${leagueId}/auction/role-gaps/all`),
   getSuggestions: (leagueId, managerId, role) =>
     request(`/leagues/${leagueId}/auction/suggestions?manager_id=${managerId}&role=${role}`),
 
