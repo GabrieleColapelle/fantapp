@@ -11,6 +11,9 @@ export default function PlayerImport({ league, onDone }) {
   const [listoneResult, setListoneResult] = useState(null)
   const [listoneLoading, setListoneLoading] = useState(false)
   const [listoneError, setListoneError] = useState('')
+  const [avgPriceResult, setAvgPriceResult] = useState(null)
+  const [avgPriceLoading, setAvgPriceLoading] = useState(false)
+  const [avgPriceError, setAvgPriceError] = useState('')
 
   const [manual, setManual] = useState({ name: '', role: 'P', team: '', quotation: '', tier: '' })
 
@@ -51,6 +54,19 @@ export default function PlayerImport({ league, onDone }) {
       setListoneError(err.message)
     } finally {
       setListoneLoading(false)
+    }
+  }
+
+  async function handleRefreshAvgPrices() {
+    setAvgPriceLoading(true)
+    setAvgPriceError('')
+    try {
+      const result = await api.refreshAvgPrices(league.id)
+      setAvgPriceResult(result)
+    } catch (err) {
+      setAvgPriceError(err.message)
+    } finally {
+      setAvgPriceLoading(false)
     }
   }
 
@@ -96,6 +112,29 @@ export default function PlayerImport({ league, onDone }) {
             {listoneError} Puoi usare l'import CSV qui sotto come alternativa.
           </p>
         )}
+      </div>
+
+      <div className="rounded-lg bg-white p-4 shadow-sm sm:p-6">
+        <h2 className="mb-1 text-lg font-semibold text-slate-800">Prezzi medi aste reali</h2>
+        <p className="mb-3 text-sm text-slate-500">
+          Aggiunge, ai giocatori già in lista, il prezzo medio realmente pagato nelle aste
+          2026/27 su Fantacalcio-Online (scelto in base al numero di manager e al budget di
+          questa lega). Richiede di aver già importato i giocatori sopra.
+        </p>
+        <button
+          onClick={handleRefreshAvgPrices}
+          disabled={avgPriceLoading}
+          className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
+        >
+          {avgPriceLoading ? 'Scaricamento...' : 'Aggiorna prezzi medi aste reali'}
+        </button>
+        {avgPriceResult && (
+          <p className="mt-3 text-sm text-slate-600">
+            <strong>{avgPriceResult.updated}</strong> giocatori aggiornati con il prezzo medio reale
+            ({avgPriceResult.unmatched} non abbinati).
+          </p>
+        )}
+        {avgPriceError && <p className="mt-3 text-sm text-red-600">{avgPriceError}</p>}
       </div>
 
       <div className="rounded-lg bg-white p-4 shadow-sm sm:p-6">

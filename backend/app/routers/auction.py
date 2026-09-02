@@ -109,7 +109,14 @@ def get_suggestions(league_id: int, manager_id: int, role: str, db: Session = De
         .all()
     )
     available_dicts = [
-        {"player_id": p.id, "name": p.name, "team": p.team, "role": p.role, "quotation": p.quotation}
+        {
+            "player_id": p.id,
+            "name": p.name,
+            "team": p.team,
+            "role": p.role,
+            "quotation": p.quotation,
+            "avg_auction_price": p.avg_auction_price,
+        }
         for p in available
         if p.pick is None
     ]

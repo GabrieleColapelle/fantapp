@@ -4,6 +4,11 @@ from sqlalchemy.orm import Session
 from app import models, schemas
 from app.database import get_db
 from app.services.csv_import import parse_players_csv
+from app.services.providers.fantacalcio_online_provider import (
+    AveragePriceFetchError,
+    fetch_average_prices,
+    select_price_column,
+)
 from app.services.providers.fantacalcio_provider import ListoneFetchError, fetch_listone
 
 router = APIRouter(prefix="/api/leagues/{league_id}/players", tags=["players"])
@@ -17,6 +22,7 @@ def _to_player_out(player: models.Player) -> schemas.PlayerOut:
         role=player.role,
         team=player.team,
         quotation=player.quotation,
+        avg_auction_price=player.avg_auction_price,
         tier=player.tier,
         status=player.status,
         is_taken=pick is not None,
@@ -128,3 +134,40 @@ def refresh_listone(league_id: int, db: Session = Depends(get_db)):
     db.commit()
 
     return schemas.ListoneRefreshResult(imported=imported, updated=updated, errors=[])
+
+
+@router.post("/refresh-avg-prices", response_model=schemas.AvgPriceRefreshResult)
+def refresh_avg_prices(league_id: int, db: Session = Depends(get_db)):
+    league = _get_league_or_404(league_id, db)
+    try:
+        rows = fetch_average_prices()
+    except AveragePriceFetchError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    column = select_price_column(participants=len(league.managers), budget=league.budget_total)
+
+    # Index every existing player under each token of its name (lowercased)
+    # so a source that only gives the surname (e.g. "Martinez" for "Lautaro
+    # Martinez") can still be matched. Compound surnames split differently
+    # between the two sources (e.g. "Kolo Muani") won't match — left as
+    # None rather than guessed.
+    players_by_token: dict[tuple[str, str, str], models.Player] = {}
+    for p in db.query(models.Player).filter(models.Player.league_id == league_id).all():
+        for token in p.name.lower().split():
+            players_by_token[(token, p.team.lower(), p.role)] = p
+
+    updated = 0
+    unmatched = 0
+    for row in rows:
+        price = row.get(column)
+        if price is None:
+            continue
+        player = players_by_token.get((row["surname_key"], row["team"].lower(), row["role"]))
+        if player:
+            player.avg_auction_price = price
+            updated += 1
+        else:
+            unmatched += 1
+    db.commit()
+
+    return schemas.AvgPriceRefreshResult(updated=updated, unmatched=unmatched, errors=[])

@@ -27,6 +27,7 @@ export const api = {
     return request(`/leagues/${leagueId}/players/import-csv`, { method: 'POST', body: form })
   },
   refreshListone: (leagueId) => request(`/leagues/${leagueId}/players/refresh-listone`, { method: 'POST' }),
+  refreshAvgPrices: (leagueId) => request(`/leagues/${leagueId}/players/refresh-avg-prices`, { method: 'POST' }),
 
   createPick: (leagueId, payload) =>
     request(`/leagues/${leagueId}/auction/picks`, { method: 'POST', body: JSON.stringify(payload) }),

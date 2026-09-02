@@ -1,10 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.database import Base, engine
+from app.database import Base, engine, sync_schema
 from app.routers import auction, leagues, lineup, players
 
 Base.metadata.create_all(bind=engine)
+sync_schema()
 
 app = FastAPI(title="Fantapp API")
 

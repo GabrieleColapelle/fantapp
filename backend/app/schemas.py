@@ -51,6 +51,7 @@ class PlayerOut(BaseModel):
     role: str
     team: str
     quotation: float
+    avg_auction_price: float | None = None
     tier: str
     status: str
     is_taken: bool
@@ -72,6 +73,12 @@ class CsvImportResult(BaseModel):
 class ListoneRefreshResult(BaseModel):
     imported: int
     updated: int
+    errors: list[str]
+
+
+class AvgPriceRefreshResult(BaseModel):
+    updated: int
+    unmatched: int
     errors: list[str]
 
 
@@ -120,6 +127,7 @@ class SuggestedPlayer(BaseModel):
     team: str
     role: str
     quotation: float
+    avg_auction_price: float | None = None
 
 
 class FasciaSuggestions(BaseModel):
