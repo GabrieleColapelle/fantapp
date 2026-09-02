@@ -1,0 +1,118 @@
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+
+from app import models, schemas
+from app.database import get_db
+from app.services.auction_logic import classify_deal, role_gaps, suggest_players
+
+router = APIRouter(prefix="/api/leagues/{league_id}/auction", tags=["auction"])
+
+
+def _get_league_or_404(league_id: int, db: Session) -> models.League:
+    league = db.get(models.League, league_id)
+    if not league:
+        raise HTTPException(status_code=404, detail="Lega non trovata")
+    return league
+
+
+@router.post("/picks", response_model=schemas.AuctionPickOut)
+def create_pick(league_id: int, payload: schemas.AuctionPickCreate, db: Session = Depends(get_db)):
+    _get_league_or_404(league_id, db)
+
+    player = db.get(models.Player, payload.player_id)
+    if not player or player.league_id != league_id:
+        raise HTTPException(status_code=404, detail="Giocatore non trovato in questa lega")
+    if player.pick is not None:
+        raise HTTPException(status_code=409, detail="Giocatore già assegnato")
+
+    manager = db.get(models.Manager, payload.manager_id)
+    if not manager or manager.league_id != league_id:
+        raise HTTPException(status_code=404, detail="Manager non trovato in questa lega")
+
+    pick = models.AuctionPick(
+        league_id=league_id,
+        manager_id=payload.manager_id,
+        player_id=payload.player_id,
+        price_paid=payload.price_paid,
+    )
+    db.add(pick)
+    db.commit()
+    db.refresh(pick)
+
+    deal = classify_deal(pick.price_paid, player.quotation)
+    return schemas.AuctionPickOut(
+        id=pick.id,
+        player_id=pick.player_id,
+        manager_id=pick.manager_id,
+        price_paid=pick.price_paid,
+        created_at=pick.created_at,
+        deal_quality=schemas.DealQuality(label=deal.label, detail=deal.detail),
+    )
+
+
+@router.delete("/picks/{pick_id}", status_code=204)
+def delete_pick(league_id: int, pick_id: int, db: Session = Depends(get_db)):
+    pick = db.get(models.AuctionPick, pick_id)
+    if not pick or pick.league_id != league_id:
+        raise HTTPException(status_code=404, detail="Assegnazione non trovata")
+    db.delete(pick)
+    db.commit()
+
+
+@router.get("/budgets", response_model=list[schemas.ManagerBudget])
+def get_budgets(league_id: int, db: Session = Depends(get_db)):
+    league = _get_league_or_404(league_id, db)
+    result = []
+    for manager in league.managers:
+        spent = sum(p.price_paid for p in manager.picks)
+        result.append(
+            schemas.ManagerBudget(
+                manager_id=manager.id,
+                name=manager.name,
+                is_me=manager.is_me,
+                budget_total=league.budget_total,
+                spent=spent,
+                remaining=league.budget_total - spent,
+                players_taken=len(manager.picks),
+            )
+        )
+    return result
+
+
+@router.get("/role-gaps", response_model=list[schemas.RoleGap])
+def get_role_gaps(league_id: int, manager_id: int, db: Session = Depends(get_db)):
+    league = _get_league_or_404(league_id, db)
+    manager = db.get(models.Manager, manager_id)
+    if not manager or manager.league_id != league_id:
+        raise HTTPException(status_code=404, detail="Manager non trovato in questa lega")
+
+    filled_by_role: dict[str, int] = {}
+    for pick in manager.picks:
+        filled_by_role[pick.player.role] = filled_by_role.get(pick.player.role, 0) + 1
+
+    return role_gaps(league.roster_config, filled_by_role)
+
+
+@router.get("/suggestions", response_model=list[schemas.SuggestedPlayer])
+def get_suggestions(league_id: int, manager_id: int, role: str, db: Session = Depends(get_db)):
+    _get_league_or_404(league_id, db)
+    manager = db.get(models.Manager, manager_id)
+    if not manager or manager.league_id != league_id:
+        raise HTTPException(status_code=404, detail="Manager non trovato in questa lega")
+
+    spent = sum(p.price_paid for p in manager.picks)
+    remaining_budget = manager.league.budget_total - spent
+
+    available = (
+        db.query(models.Player)
+        .filter(models.Player.league_id == league_id, models.Player.role == role.upper())
+        .all()
+    )
+    available_dicts = [
+        {"player_id": p.id, "name": p.name, "team": p.team, "role": p.role, "quotation": p.quotation}
+        for p in available
+        if p.pick is None
+    ]
+
+    suggestions = suggest_players(available_dicts, role.upper(), remaining_budget)
+    return [schemas.SuggestedPlayer(**s) for s in suggestions]
