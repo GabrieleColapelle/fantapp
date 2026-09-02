@@ -8,6 +8,7 @@ from sqlalchemy import (
     Integer,
     JSON,
     String,
+    UniqueConstraint,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -28,6 +29,8 @@ class League(Base):
     managers: Mapped[list["Manager"]] = relationship(back_populates="league", cascade="all, delete-orphan")
     players: Mapped[list["Player"]] = relationship(back_populates="league", cascade="all, delete-orphan")
     picks: Mapped[list["AuctionPick"]] = relationship(back_populates="league", cascade="all, delete-orphan")
+    fixtures: Mapped[list["Fixture"]] = relationship(back_populates="league", cascade="all, delete-orphan")
+    lineups: Mapped[list["Lineup"]] = relationship(back_populates="league", cascade="all, delete-orphan")
 
 
 class Manager(Base):
@@ -52,9 +55,13 @@ class Player(Base):
     team: Mapped[str] = mapped_column(String, default="")
     quotation: Mapped[float] = mapped_column(Float, default=0)
     tier: Mapped[str] = mapped_column(String, default="")
+    status: Mapped[str] = mapped_column(String, default="")
 
     league: Mapped["League"] = relationship(back_populates="players")
     pick: Mapped["AuctionPick | None"] = relationship(back_populates="player", uselist=False)
+    match_stats: Mapped[list["PlayerMatchStat"]] = relationship(
+        back_populates="player", cascade="all, delete-orphan"
+    )
 
 
 class AuctionPick(Base):
@@ -70,3 +77,50 @@ class AuctionPick(Base):
     league: Mapped["League"] = relationship(back_populates="picks")
     manager: Mapped["Manager"] = relationship(back_populates="picks")
     player: Mapped["Player"] = relationship(back_populates="pick")
+
+
+class PlayerMatchStat(Base):
+    __tablename__ = "player_match_stats"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    player_id: Mapped[int] = mapped_column(ForeignKey("players.id"), nullable=False)
+    matchday: Mapped[int] = mapped_column(Integer, nullable=False)
+    played: Mapped[bool] = mapped_column(Boolean, default=True)
+    vote: Mapped[float | None] = mapped_column(Float, nullable=True)
+    opponent: Mapped[str] = mapped_column(String, default="")
+    home: Mapped[bool] = mapped_column(Boolean, default=True)
+
+    player: Mapped["Player"] = relationship(back_populates="match_stats")
+
+    __table_args__ = (UniqueConstraint("player_id", "matchday", name="uq_player_matchday"),)
+
+
+class Fixture(Base):
+    __tablename__ = "fixtures"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    league_id: Mapped[int] = mapped_column(ForeignKey("leagues.id"), nullable=False)
+    matchday: Mapped[int] = mapped_column(Integer, nullable=False)
+    team: Mapped[str] = mapped_column(String, nullable=False)
+    opponent: Mapped[str] = mapped_column(String, nullable=False)
+    home: Mapped[bool] = mapped_column(Boolean, default=True)
+
+    league: Mapped["League"] = relationship(back_populates="fixtures")
+
+    __table_args__ = (UniqueConstraint("league_id", "matchday", "team", name="uq_league_matchday_team"),)
+
+
+class Lineup(Base):
+    __tablename__ = "lineups"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    league_id: Mapped[int] = mapped_column(ForeignKey("leagues.id"), nullable=False)
+    manager_id: Mapped[int] = mapped_column(ForeignKey("managers.id"), nullable=False)
+    matchday: Mapped[int] = mapped_column(Integer, nullable=False)
+    formation: Mapped[str] = mapped_column(String, nullable=False)
+    starters: Mapped[list[int]] = mapped_column(JSON, default=list)
+    bench: Mapped[list[int]] = mapped_column(JSON, default=list)
+
+    league: Mapped["League"] = relationship(back_populates="lineups")
+
+    __table_args__ = (UniqueConstraint("league_id", "manager_id", "matchday", name="uq_league_manager_matchday"),)

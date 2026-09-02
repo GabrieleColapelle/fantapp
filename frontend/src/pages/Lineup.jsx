@@ -1,0 +1,159 @@
+import { useEffect, useMemo, useState } from 'react'
+import { api } from '../api/client'
+import LineupResult from '../components/LineupResult'
+import PlayerStatusList from '../components/PlayerStatusList'
+
+const FORMATIONS = ['3-4-3', '3-5-2', '4-3-3', '4-4-2', '4-5-1', '5-3-2', '5-4-1']
+
+export default function Lineup({ league }) {
+  const me = useMemo(() => league.managers.find((m) => m.is_me) ?? league.managers[0], [league])
+
+  const [myPlayers, setMyPlayers] = useState([])
+  const [matchday, setMatchday] = useState(1)
+  const [formation, setFormation] = useState('4-3-3')
+  const [recommendation, setRecommendation] = useState(null)
+  const [importResult, setImportResult] = useState(null)
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  async function refreshMyPlayers() {
+    const players = await api.listPlayers(league.id)
+    setMyPlayers(players.filter((p) => p.is_taken && p.manager_id === me.id))
+  }
+
+  useEffect(() => {
+    refreshMyPlayers()
+  }, [league.id])
+
+  async function handleStatusChange(playerId, status) {
+    await api.updatePlayerStatus(league.id, playerId, status)
+    await refreshMyPlayers()
+  }
+
+  async function handleImport(kind, file) {
+    setError('')
+    try {
+      const result =
+        kind === 'stats' ? await api.importMatchStatsCsv(league.id, file) : await api.importFixturesCsv(league.id, file)
+      setImportResult({ kind, ...result })
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
+  async function handleCompute() {
+    setError('')
+    setSaved(false)
+    setLoading(true)
+    try {
+      const rec = await api.getRecommendation(league.id, me.id, matchday, formation)
+      setRecommendation(rec)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleSave() {
+    setSaving(true)
+    try {
+      await api.saveLineup(league.id, {
+        manager_id: me.id,
+        matchday: Number(matchday),
+        formation,
+        starters: recommendation.starters.map((p) => p.player_id),
+        bench: recommendation.bench.map((p) => p.player_id),
+      })
+      setSaved(true)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-lg bg-white p-4 shadow-sm sm:p-6">
+        <h2 className="mb-1 text-lg font-semibold text-slate-800">Importa dati partite</h2>
+        <p className="mb-3 text-sm text-slate-500">
+          Carica i voti delle giornate passate e il calendario/avversari per calcolare i
+          punteggi di consigliabilità.
+        </p>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div>
+            <label className="mb-1 block text-xs font-medium text-slate-600">Voti giornata (CSV)</label>
+            <input
+              type="file"
+              accept=".csv"
+              onChange={(e) => e.target.files[0] && handleImport('stats', e.target.files[0])}
+              className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-md file:border-0 file:bg-blue-600 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-white hover:file:bg-blue-700"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-slate-600">Calendario/avversari (CSV)</label>
+            <input
+              type="file"
+              accept=".csv"
+              onChange={(e) => e.target.files[0] && handleImport('fixtures', e.target.files[0])}
+              className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-md file:border-0 file:bg-blue-600 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-white hover:file:bg-blue-700"
+            />
+          </div>
+        </div>
+        {importResult && (
+          <p className="mt-3 text-sm text-slate-600">
+            Importate <strong>{importResult.imported}</strong> righe, {importResult.skipped} saltate.
+          </p>
+        )}
+      </div>
+
+      <PlayerStatusList players={myPlayers} onStatusChange={handleStatusChange} />
+
+      <div className="rounded-lg bg-white p-4 shadow-sm sm:p-6">
+        <h2 className="mb-3 text-lg font-semibold text-slate-800">Formazione consigliata</h2>
+        <div className="mb-4 flex flex-wrap items-end gap-3">
+          <div>
+            <label className="mb-1 block text-xs font-medium text-slate-600">Giornata</label>
+            <input
+              type="number"
+              min={1}
+              value={matchday}
+              onChange={(e) => setMatchday(e.target.value)}
+              className="w-24 rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-slate-600">Modulo</label>
+            <select
+              value={formation}
+              onChange={(e) => setFormation(e.target.value)}
+              className="rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+            >
+              {FORMATIONS.map((f) => (
+                <option key={f} value={f}>
+                  {f}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button
+            onClick={handleCompute}
+            disabled={loading}
+            className="rounded-md bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-900 disabled:opacity-50"
+          >
+            {loading ? 'Calcolo...' : 'Calcola formazione'}
+          </button>
+        </div>
+
+        {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
+
+        {recommendation && (
+          <LineupResult recommendation={recommendation} onSave={handleSave} saving={saving} saved={saved} />
+        )}
+      </div>
+    </div>
+  )
+}

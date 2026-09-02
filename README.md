@@ -43,8 +43,10 @@ cd backend
 - [x] **Modulo 1 — Assistente Asta**: import quotazioni da CSV, assegnazione
       giocatori multi-manager, budget in tempo reale, alert buon
       affare/prezzo gonfiato, gap per ruolo, suggerimenti.
-- [ ] **Modulo 2 — Assistente Formazioni**: consigli sugli 11 titolari a ogni
-      giornata.
+- [x] **Modulo 2 — Assistente Formazioni** (solo Classic per ora): punteggio
+      di consigliabilità per giocatore (forma recente, casa/trasferta,
+      scontro diretto, rischio panchina/squalifica), formazione consigliata
+      con ballottaggi, salvataggio della formazione scelta.
 - [ ] **Modulo 3 — Aggiornamento dati**: import automatico di voti,
       infortuni, calendario e probabili formazioni.
 - [ ] **Modulo 4 — Dashboard e gestione lega**: classifica, storico
