@@ -1,5 +1,12 @@
 const ROLES = ['P', 'D', 'C', 'A']
 
+function starterClass(probability) {
+  if (probability == null) return 'text-slate-400'
+  if (probability >= 70) return 'text-green-600 font-medium'
+  if (probability >= 40) return 'text-amber-600'
+  return 'text-red-500'
+}
+
 export default function PlayerTable({ players, filters, onFiltersChange, managersById, onAssign, onRemove }) {
   return (
     <div className="rounded-lg bg-white shadow-sm">
@@ -41,6 +48,7 @@ export default function PlayerTable({ players, filters, onFiltersChange, manager
               <th className="px-3 py-2">Squadra</th>
               <th className="px-3 py-2">Quot.</th>
               <th className="px-3 py-2">Media aste</th>
+              <th className="px-3 py-2">Titolare</th>
               <th className="px-3 py-2">Stato</th>
               <th className="px-3 py-2" />
             </tr>
@@ -54,6 +62,9 @@ export default function PlayerTable({ players, filters, onFiltersChange, manager
                 <td className="px-3 py-2">{p.quotation}</td>
                 <td className="px-3 py-2 text-slate-500">
                   {p.avg_auction_price != null ? p.avg_auction_price.toFixed(1) : '—'}
+                </td>
+                <td className={`px-3 py-2 ${starterClass(p.starter_probability)}`}>
+                  {p.starter_probability != null ? `${p.starter_probability.toFixed(0)}%` : '—'}
                 </td>
                 <td className="px-3 py-2 text-xs">
                   {p.is_taken ? (
@@ -85,7 +96,7 @@ export default function PlayerTable({ players, filters, onFiltersChange, manager
             ))}
             {players.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-3 py-6 text-center text-slate-400">
+                <td colSpan={8} className="px-3 py-6 text-center text-slate-400">
                   Nessun giocatore trovato
                 </td>
               </tr>

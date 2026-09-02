@@ -50,8 +50,9 @@ cd backend
       di consigliabilità per giocatore (forma recente, casa/trasferta,
       scontro diretto, rischio panchina/squalifica), formazione consigliata
       con ballottaggi, salvataggio della formazione scelta.
-- [ ] **Modulo 3 — Aggiornamento dati**: ✅ quotazioni (bottone "Aggiorna da
-      Fantacalcio.it" nella pagina Importa giocatori); mancano ancora voti,
-      infortuni, calendario e probabili formazioni.
+- [ ] **Modulo 3 — Aggiornamento dati**: ✅ quotazioni, ✅ prezzi medi aste
+      reali, ✅ probabili titolari e infortuni (media pesata di 4 fonti via
+      Fantacalcio-Online); mancano ancora voti storici e calendario/avversari
+      da fonti live (oggi via CSV manuale nel Modulo 2).
 - [ ] **Modulo 4 — Dashboard e gestione lega**: classifica, storico
       formazioni, watchlist, confronto giocatori.

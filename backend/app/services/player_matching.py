@@ -1,16 +1,10 @@
 """Matches players already in a league against rows from an external source
-(e.g. Fantacalcio-Online's average prices) that doesn't share a common ID.
-Kept as a pure function, separate from the DB/router, so the matching rules
-(and their edge cases) are easy to unit test.
+(e.g. Fantacalcio-Online's average prices or probable lineups) that doesn't
+share a common ID. Kept as pure functions, separate from the DB/router, so
+the matching rules (and their edge cases) are easy to unit test.
 """
 import unicodedata
 from dataclasses import dataclass
-
-
-@dataclass
-class MatchResult:
-    matched: dict[int, float]  # player_id -> price
-    unmatched: int
 
 
 def _fold(text: str) -> str:
@@ -21,28 +15,57 @@ def _fold(text: str) -> str:
     return "".join(c for c in text if not unicodedata.combining(c))
 
 
+class PlayerNameIndex:
+    """Indexes players by every (name token, team) pair so a source that
+    only gives a surname (e.g. "Martinez" for "Lautaro Martinez") or splits
+    a compound surname differently (e.g. "Kolo Muani") can still be found —
+    a match succeeds as long as the two sources share at least one name
+    token for that team.
+    """
+
+    def __init__(self, players: list[dict]):
+        self._by_token: dict[tuple[str, str], list[dict]] = {}
+        for p in players:
+            for token in _fold(p["name"]).split():
+                self._by_token.setdefault((token, _fold(p["team"])), []).append(p)
+
+    def resolve(self, surname_key: str, team: str, role: str | None) -> dict | None:
+        """Matches on (name token, team) first: the two sources don't
+        always agree on a player's role (e.g. Dimarco is "D" on the
+        official listone but "C" on Fantacalcio-Online), so requiring an
+        exact role match would drop real matches. `role` is only used as a
+        tiebreaker when a name+team is genuinely ambiguous (e.g. two
+        "Martinez" at Inter: one keeper, one striker)."""
+        team = _fold(team)
+        candidates: list[dict] = []
+        seen_ids = set()
+        for token in _fold(surname_key).split():
+            for c in self._by_token.get((token, team), []):
+                if c["id"] not in seen_ids:
+                    seen_ids.add(c["id"])
+                    candidates.append(c)
+
+        if len(candidates) == 1:
+            return candidates[0]
+        if len(candidates) > 1 and role:
+            same_role = [c for c in candidates if c["role"] == role]
+            if len(same_role) == 1:
+                return same_role[0]
+        return None
+
+
+@dataclass
+class MatchResult:
+    matched: dict[int, float]  # player_id -> price
+    unmatched: int
+
+
 def match_avg_prices(players: list[dict], rows: list[dict], column: str) -> MatchResult:
     """`players`: existing league players as dicts with id/name/team/role.
     `rows`: parsed rows from fetch_average_prices(), each with
     surname_key/team/role plus the price columns. `column` is which price
-    column to use (see select_price_column).
-
-    Matches on (name token, team) first: the two sources don't always agree
-    on a player's role (e.g. Dimarco is "D" on the official listone but "C"
-    on Fantacalcio-Online), so requiring an exact role match would drop
-    real matches. Role is only used as a tiebreaker when a name+team is
-    genuinely ambiguous (e.g. two "Martinez" at Inter: one keeper, one
-    striker). `surname_key` can itself be multi-word (e.g. "kolo muani",
-    "de bruyne") — every word is tried against every word of the stored
-    name, so a match succeeds as long as the two sources share at least one
-    name token for that team, even if they order/split a compound surname
-    differently.
-    """
-    players_by_name_team: dict[tuple[str, str], list[dict]] = {}
-    for p in players:
-        for token in _fold(p["name"]).split():
-            players_by_name_team.setdefault((token, _fold(p["team"])), []).append(p)
-
+    column to use (see select_price_column)."""
+    index = PlayerNameIndex(players)
     matched: dict[int, float] = {}
     unmatched = 0
 
@@ -51,26 +74,51 @@ def match_avg_prices(players: list[dict], rows: list[dict], column: str) -> Matc
         if price is None:
             continue
 
-        team = _fold(row["team"])
-        candidates = []
-        seen_ids = set()
-        for token in _fold(row["surname_key"]).split():
-            for c in players_by_name_team.get((token, team), []):
-                if c["id"] not in seen_ids:
-                    seen_ids.add(c["id"])
-                    candidates.append(c)
-
-        player = None
-        if len(candidates) == 1:
-            player = candidates[0]
-        elif len(candidates) > 1:
-            same_role = [c for c in candidates if c["role"] == row["role"]]
-            if len(same_role) == 1:
-                player = same_role[0]
-
+        player = index.resolve(row["surname_key"], row["team"], row["role"])
         if player:
             matched[player["id"]] = price
         else:
             unmatched += 1
 
     return MatchResult(matched=matched, unmatched=unmatched)
+
+
+@dataclass
+class LineupMatchResult:
+    starter_probability: dict[int, float | None]  # player_id -> probability (None if unknown)
+    status: dict[int, str]  # player_id -> "infortunato"/"squalificato"/"diffidato"
+    unmatched: int
+
+
+def match_probable_lineups(players: list[dict], lineups: dict) -> LineupMatchResult:
+    """`players`: existing league players as dicts with id/name/team/role.
+    `lineups`: the dict returned by fetch_probable_lineups() (starters +
+    unavailable). Only the *starters* table sets starter_probability
+    (bench-table rows are skipped: a low "will come off the bench"
+    percentage isn't the auction signal we want). Unavailable players get
+    their `status` set only for reasons we recognize (see
+    UNAVAILABLE_REASON_MAP in the provider) — an unrecognized reason is
+    left alone rather than guessed.
+    """
+    index = PlayerNameIndex(players)
+    starter_probability: dict[int, float | None] = {}
+    status: dict[int, str] = {}
+    unmatched = 0
+
+    for row in lineups["starters"]:
+        if not row["is_starter"]:
+            continue
+        player = index.resolve(row["surname_key"], row["team"], row["role"])
+        if player:
+            starter_probability[player["id"]] = row["probability"]
+        else:
+            unmatched += 1
+
+    for row in lineups["unavailable"]:
+        if not row["reason"]:
+            continue
+        player = index.resolve(row["surname_key"], row["team"], row["role"])
+        if player:
+            status[player["id"]] = row["reason"]
+
+    return LineupMatchResult(starter_probability=starter_probability, status=status, unmatched=unmatched)

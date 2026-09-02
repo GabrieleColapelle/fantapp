@@ -14,6 +14,9 @@ export default function PlayerImport({ league, onDone }) {
   const [avgPriceResult, setAvgPriceResult] = useState(null)
   const [avgPriceLoading, setAvgPriceLoading] = useState(false)
   const [avgPriceError, setAvgPriceError] = useState('')
+  const [lineupsResult, setLineupsResult] = useState(null)
+  const [lineupsLoading, setLineupsLoading] = useState(false)
+  const [lineupsError, setLineupsError] = useState('')
 
   const [manual, setManual] = useState({ name: '', role: 'P', team: '', quotation: '', tier: '' })
 
@@ -67,6 +70,19 @@ export default function PlayerImport({ league, onDone }) {
       setAvgPriceError(err.message)
     } finally {
       setAvgPriceLoading(false)
+    }
+  }
+
+  async function handleRefreshLineups() {
+    setLineupsLoading(true)
+    setLineupsError('')
+    try {
+      const result = await api.refreshLineups(league.id)
+      setLineupsResult(result)
+    } catch (err) {
+      setLineupsError(err.message)
+    } finally {
+      setLineupsLoading(false)
     }
   }
 
@@ -135,6 +151,31 @@ export default function PlayerImport({ league, onDone }) {
           </p>
         )}
         {avgPriceError && <p className="mt-3 text-sm text-red-600">{avgPriceError}</p>}
+      </div>
+
+      <div className="rounded-lg bg-white p-4 shadow-sm sm:p-6">
+        <h2 className="mb-1 text-lg font-semibold text-slate-800">Probabili titolari</h2>
+        <p className="mb-3 text-sm text-slate-500">
+          Aggiunge la probabilità di essere titolare nella prossima giornata (media pesata di
+          Fantacalcio.it, Gazzetta, SOS Fanta e Sky da Fantacalcio-Online) e segna
+          automaticamente come infortunati i giocatori indisponibili. Sovrascrive uno stato
+          impostato a mano in precedenza.
+        </p>
+        <button
+          onClick={handleRefreshLineups}
+          disabled={lineupsLoading}
+          className="rounded-md bg-purple-600 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-700 disabled:opacity-50"
+        >
+          {lineupsLoading ? 'Scaricamento...' : 'Aggiorna probabili titolari'}
+        </button>
+        {lineupsResult && (
+          <p className="mt-3 text-sm text-slate-600">
+            <strong>{lineupsResult.starters_updated}</strong> giocatori con probabilità titolare,{' '}
+            <strong>{lineupsResult.status_updated}</strong> segnati infortunati
+            ({lineupsResult.unmatched} non abbinati).
+          </p>
+        )}
+        {lineupsError && <p className="mt-3 text-sm text-red-600">{lineupsError}</p>}
       </div>
 
       <div className="rounded-lg bg-white p-4 shadow-sm sm:p-6">

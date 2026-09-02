@@ -1,4 +1,4 @@
-from app.services.player_matching import match_avg_prices
+from app.services.player_matching import match_avg_prices, match_probable_lineups
 
 
 def player(id, name, team, role):
@@ -76,4 +76,48 @@ def test_no_candidate_at_all_is_unmatched():
     rows = [row("someoneelse", "Roma", "A", 10.0)]
     result = match_avg_prices(players, rows, "avg_8_500")
     assert result.matched == {}
+    assert result.unmatched == 1
+
+
+def lineup_starter(surname_key, team, role, is_starter, probability):
+    return {"surname_key": surname_key, "team": team, "role": role, "is_starter": is_starter, "probability": probability}
+
+
+def unavailable(surname_key, team, role, reason):
+    return {"surname_key": surname_key, "team": team, "role": role, "reason": reason}
+
+
+def test_match_probable_lineups_sets_starter_probability():
+    players = [player(1, "Malen", "Roma", "A")]
+    lineups = {"starters": [lineup_starter("malen", "Roma", "A", True, 91.0)], "unavailable": []}
+    result = match_probable_lineups(players, lineups)
+    assert result.starter_probability == {1: 91.0}
+    assert result.status == {}
+
+
+def test_match_probable_lineups_ignores_bench_rows():
+    players = [player(1, "Osmajic", "Genoa", "A")]
+    lineups = {"starters": [lineup_starter("osmajic", "Genoa", "A", False, 47.0)], "unavailable": []}
+    result = match_probable_lineups(players, lineups)
+    assert result.starter_probability == {}
+
+
+def test_match_probable_lineups_sets_status_for_recognized_reason():
+    players = [player(1, "Nuredini", "Genoa", "C")]
+    lineups = {"starters": [], "unavailable": [unavailable("nuredini", "Genoa", "C", "infortunato")]}
+    result = match_probable_lineups(players, lineups)
+    assert result.status == {1: "infortunato"}
+
+
+def test_match_probable_lineups_skips_unrecognized_reason():
+    players = [player(1, "Nuredini", "Genoa", "C")]
+    lineups = {"starters": [], "unavailable": [unavailable("nuredini", "Genoa", "C", None)]}
+    result = match_probable_lineups(players, lineups)
+    assert result.status == {}
+
+
+def test_match_probable_lineups_counts_unmatched_starters():
+    players = [player(1, "Malen", "Roma", "A")]
+    lineups = {"starters": [lineup_starter("someoneelse", "Roma", "A", True, 90.0)], "unavailable": []}
+    result = match_probable_lineups(players, lineups)
     assert result.unmatched == 1

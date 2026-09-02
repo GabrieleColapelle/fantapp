@@ -144,6 +144,7 @@ def get_suggestions(league_id: int, manager_id: int, role: str, db: Session = De
             "role": p.role,
             "quotation": p.quotation,
             "avg_auction_price": p.avg_auction_price,
+            "starter_probability": p.starter_probability,
         }
         for p in available
         if p.pick is None
