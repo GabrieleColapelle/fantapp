@@ -40,7 +40,12 @@ export default function SuggestionsPanel({ role, onRoleChange, suggestions }) {
                     <span className="text-slate-700">
                       {s.name} <span className="text-slate-400">({s.team})</span>
                     </span>
-                    <span className="font-medium text-slate-600">{s.quotation}</span>
+                    <span className="text-right">
+                      <span className="font-medium text-slate-600">{s.quotation}</span>
+                      {s.avg_auction_price != null && (
+                        <span className="ml-1 text-slate-400">· media {s.avg_auction_price.toFixed(1)}</span>
+                      )}
+                    </span>
                   </li>
                 ))}
               </ul>

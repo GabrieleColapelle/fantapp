@@ -40,6 +40,7 @@ export default function PlayerTable({ players, filters, onFiltersChange, manager
               <th className="px-3 py-2">R</th>
               <th className="px-3 py-2">Squadra</th>
               <th className="px-3 py-2">Quot.</th>
+              <th className="px-3 py-2">Media aste</th>
               <th className="px-3 py-2">Stato</th>
               <th className="px-3 py-2" />
             </tr>
@@ -51,6 +52,9 @@ export default function PlayerTable({ players, filters, onFiltersChange, manager
                 <td className="px-3 py-2">{p.role}</td>
                 <td className="px-3 py-2">{p.team}</td>
                 <td className="px-3 py-2">{p.quotation}</td>
+                <td className="px-3 py-2 text-slate-500">
+                  {p.avg_auction_price != null ? p.avg_auction_price.toFixed(1) : '—'}
+                </td>
                 <td className="px-3 py-2 text-xs">
                   {p.is_taken ? (
                     <span>
@@ -81,7 +85,7 @@ export default function PlayerTable({ players, filters, onFiltersChange, manager
             ))}
             {players.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-3 py-6 text-center text-slate-400">
+                <td colSpan={7} className="px-3 py-6 text-center text-slate-400">
                   Nessun giocatore trovato
                 </td>
               </tr>

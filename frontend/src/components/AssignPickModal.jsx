@@ -17,6 +17,7 @@ export default function AssignPickModal({ player, managers, onConfirm, onClose }
         <h3 className="mb-1 text-lg font-semibold text-slate-800">{player.name}</h3>
         <p className="mb-4 text-xs text-slate-500">
           {player.role} · {player.team} · Quotazione {player.quotation}
+          {player.avg_auction_price != null && ` · Media reale ${player.avg_auction_price.toFixed(1)}`}
         </p>
 
         <label className="mb-1 block text-sm font-medium text-slate-700">Assegnato a</label>

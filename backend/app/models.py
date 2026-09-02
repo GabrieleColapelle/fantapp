@@ -56,6 +56,7 @@ class Player(Base):
     quotation: Mapped[float] = mapped_column(Float, default=0)
     tier: Mapped[str] = mapped_column(String, default="")
     status: Mapped[str] = mapped_column(String, default="")
+    avg_auction_price: Mapped[float | None] = mapped_column(Float, nullable=True)
 
     league: Mapped["League"] = relationship(back_populates="players")
     pick: Mapped["AuctionPick | None"] = relationship(back_populates="player", uselist=False)

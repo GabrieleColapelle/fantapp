@@ -41,9 +41,11 @@ cd backend
 ## Roadmap moduli
 
 - [x] **Modulo 1 — Assistente Asta**: import quotazioni da CSV o
-      automaticamente dal listone ufficiale Fantacalcio.it, assegnazione
-      giocatori multi-manager, budget in tempo reale, alert buon
-      affare/prezzo gonfiato, gap per ruolo, suggerimenti.
+      automaticamente dal listone ufficiale Fantacalcio.it (con prezzi medi
+      reali pagati nelle aste italiane da Fantacalcio-Online, per confronto),
+      assegnazione giocatori multi-manager, budget in tempo reale, alert
+      buon affare/prezzo gonfiato, gap per ruolo, suggerimenti per fascia
+      di prezzo.
 - [x] **Modulo 2 — Assistente Formazioni** (solo Classic per ora): punteggio
       di consigliabilità per giocatore (forma recente, casa/trasferta,
       scontro diretto, rischio panchina/squalifica), formazione consigliata
