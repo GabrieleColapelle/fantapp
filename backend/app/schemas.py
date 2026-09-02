@@ -54,6 +54,7 @@ class PlayerOut(BaseModel):
     tier: str
     status: str
     is_taken: bool
+    pick_id: int | None = None
     manager_id: int | None = None
     price_paid: float | None = None
 

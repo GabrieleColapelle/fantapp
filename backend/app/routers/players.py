@@ -20,6 +20,7 @@ def _to_player_out(player: models.Player) -> schemas.PlayerOut:
         tier=player.tier,
         status=player.status,
         is_taken=pick is not None,
+        pick_id=pick.id if pick else None,
         manager_id=pick.manager_id if pick else None,
         price_paid=pick.price_paid if pick else None,
     )

@@ -57,6 +57,17 @@ export default function Auction({ league }) {
     }
   }
 
+  async function handleRemovePick(player) {
+    if (!window.confirm(`Rimuovere l'assegnazione di ${player.name}?`)) return
+    setError('')
+    try {
+      await api.deletePick(league.id, player.pick_id)
+      await Promise.all([loadPlayers(), loadSidebar()])
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_280px]">
       <div className="order-2 space-y-3 lg:order-1">
@@ -80,6 +91,7 @@ export default function Auction({ league }) {
           onFiltersChange={setFilters}
           managersById={managersById}
           onAssign={setAssigningPlayer}
+          onRemove={handleRemovePick}
         />
       </div>
 
