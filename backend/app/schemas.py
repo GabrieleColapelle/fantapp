@@ -68,6 +68,12 @@ class CsvImportResult(BaseModel):
     errors: list[str]
 
 
+class ListoneRefreshResult(BaseModel):
+    imported: int
+    updated: int
+    errors: list[str]
+
+
 class AuctionPickCreate(BaseModel):
     player_id: int
     manager_id: int

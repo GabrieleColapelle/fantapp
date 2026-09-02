@@ -8,6 +8,9 @@ export default function PlayerImport({ league, onDone }) {
   const [importResult, setImportResult] = useState(null)
   const [importing, setImporting] = useState(false)
   const [error, setError] = useState('')
+  const [listoneResult, setListoneResult] = useState(null)
+  const [listoneLoading, setListoneLoading] = useState(false)
+  const [listoneError, setListoneError] = useState('')
 
   const [manual, setManual] = useState({ name: '', role: 'P', team: '', quotation: '', tier: '' })
 
@@ -37,6 +40,20 @@ export default function PlayerImport({ league, onDone }) {
     }
   }
 
+  async function handleRefreshListone() {
+    setListoneLoading(true)
+    setListoneError('')
+    try {
+      const result = await api.refreshListone(league.id)
+      setListoneResult(result)
+      await refreshCount()
+    } catch (err) {
+      setListoneError(err.message)
+    } finally {
+      setListoneLoading(false)
+    }
+  }
+
   async function handleManualAdd(e) {
     e.preventDefault()
     if (!manual.name.trim()) return
@@ -56,6 +73,31 @@ export default function PlayerImport({ league, onDone }) {
 
   return (
     <div className="space-y-4">
+      <div className="rounded-lg bg-white p-4 shadow-sm sm:p-6">
+        <h2 className="mb-1 text-lg font-semibold text-slate-800">Aggiorna da Fantacalcio.it</h2>
+        <p className="mb-3 text-sm text-slate-500">
+          Scarica il listone ufficiale aggiornato (quotazioni Classic) direttamente dal sito.
+          Rieseguibile in ogni momento: aggiorna i giocatori già presenti invece di duplicarli.
+        </p>
+        <button
+          onClick={handleRefreshListone}
+          disabled={listoneLoading}
+          className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+        >
+          {listoneLoading ? 'Scaricamento...' : 'Aggiorna da Fantacalcio.it'}
+        </button>
+        {listoneResult && (
+          <p className="mt-3 text-sm text-slate-600">
+            <strong>{listoneResult.imported}</strong> nuovi giocatori, <strong>{listoneResult.updated}</strong> aggiornati.
+          </p>
+        )}
+        {listoneError && (
+          <p className="mt-3 text-sm text-red-600">
+            {listoneError} Puoi usare l'import CSV qui sotto come alternativa.
+          </p>
+        )}
+      </div>
+
       <div className="rounded-lg bg-white p-4 shadow-sm sm:p-6">
         <h2 className="mb-1 text-lg font-semibold text-slate-800">Importa da CSV</h2>
         <p className="mb-3 text-sm text-slate-500">
