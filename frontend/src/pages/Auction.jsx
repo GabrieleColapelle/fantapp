@@ -12,6 +12,7 @@ export default function Auction({ league }) {
 
   const [filters, setFilters] = useState({ search: '', role: '', available_only: false })
   const [players, setPlayers] = useState([])
+  const [rosterPlayers, setRosterPlayers] = useState([])
   const [budgets, setBudgets] = useState([])
   const [roleGaps, setRoleGaps] = useState([])
   const [suggestionRole, setSuggestionRole] = useState('P')
@@ -24,6 +25,10 @@ export default function Auction({ league }) {
     const params = Object.fromEntries(Object.entries(filters).filter(([, v]) => v))
     setPlayers(await api.listPlayers(league.id, params))
   }, [league.id, filters])
+
+  const loadRosterPlayers = useCallback(async () => {
+    setRosterPlayers(await api.listPlayers(league.id))
+  }, [league.id])
 
   const loadSidebar = useCallback(async () => {
     const [b, g, s] = await Promise.all([
@@ -41,6 +46,10 @@ export default function Auction({ league }) {
   }, [loadPlayers])
 
   useEffect(() => {
+    loadRosterPlayers()
+  }, [loadRosterPlayers])
+
+  useEffect(() => {
     loadSidebar()
   }, [loadSidebar])
 
@@ -50,7 +59,7 @@ export default function Auction({ league }) {
       const pick = await api.createPick(league.id, payload)
       setDealBanner({ player: assigningPlayer.name, ...pick.deal_quality })
       setAssigningPlayer(null)
-      await Promise.all([loadPlayers(), loadSidebar()])
+      await Promise.all([loadPlayers(), loadSidebar(), loadRosterPlayers()])
       setTimeout(() => setDealBanner(null), 5000)
     } catch (err) {
       setError(err.message)
@@ -62,7 +71,7 @@ export default function Auction({ league }) {
     setError('')
     try {
       await api.deletePick(league.id, player.pick_id)
-      await Promise.all([loadPlayers(), loadSidebar()])
+      await Promise.all([loadPlayers(), loadSidebar(), loadRosterPlayers()])
     } catch (err) {
       setError(err.message)
     }
@@ -96,7 +105,7 @@ export default function Auction({ league }) {
       </div>
 
       <div className="order-1 space-y-3 lg:order-2">
-        <ManagerBudgetPanel budgets={budgets} />
+        <ManagerBudgetPanel budgets={budgets} players={rosterPlayers} />
         <RoleGapPanel gaps={roleGaps} />
         <SuggestionsPanel role={suggestionRole} onRoleChange={setSuggestionRole} suggestions={suggestions} />
       </div>
