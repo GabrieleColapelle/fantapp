@@ -1,5 +1,3 @@
-const ROLES = ['P', 'D', 'C', 'A']
-
 const FASCIA_ICONS = {
   Top: '⭐',
   Semitop: '🔹',
@@ -14,55 +12,52 @@ function starterDotClass(probability) {
   return 'bg-red-500'
 }
 
-export default function SuggestionsPanel({ role, onRoleChange, suggestions }) {
+export default function SuggestionsPanel({ suggestions }) {
   return (
     <div className="rounded-lg bg-white p-4 shadow-sm">
-      <div className="mb-2 flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-slate-700">Suggerimenti</h3>
-        <select
-          value={role}
-          onChange={(e) => onRoleChange(e.target.value)}
-          className="rounded-md border border-slate-300 px-1.5 py-0.5 text-xs"
-        >
-          {ROLES.map((r) => (
-            <option key={r} value={r}>
-              {r}
-            </option>
-          ))}
-        </select>
-      </div>
+      <h3 className="mb-2 text-sm font-semibold text-slate-700">Suggerimenti</h3>
 
-      <div className="space-y-3">
-        {suggestions.map((group) => (
-          <div key={group.fascia}>
-            <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-              {FASCIA_ICONS[group.fascia] ?? ''} {group.fascia}
-            </p>
-            {group.players.length === 0 ? (
-              <p className="text-xs text-slate-400">Nessuno disponibile</p>
-            ) : (
-              <ul className="space-y-1">
-                {group.players.map((s) => (
-                  <li key={s.player_id} className="flex justify-between text-xs">
-                    <span className="text-slate-700">
-                      <span
-                        title={s.starter_probability != null ? `${s.starter_probability.toFixed(0)}% titolare` : 'Titolarità sconosciuta'}
-                        className={`mr-1 inline-block h-1.5 w-1.5 rounded-full ${starterDotClass(s.starter_probability)}`}
-                      />
-                      {s.name} <span className="text-slate-400">({s.team})</span>
-                    </span>
-                    <span className="text-right">
-                      <span className="font-medium text-slate-600">{s.quotation}</span>
-                      {s.avg_auction_price != null && (
-                        <span className="ml-1 text-slate-400">· media {s.avg_auction_price.toFixed(1)}</span>
-                      )}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        ))}
+      <div className="space-y-4">
+        {suggestions.map((roleGroup) => {
+          const players = roleGroup.fasce.flatMap((f) => f.players.map((p) => ({ ...p, fascia: f.fascia })))
+          return (
+            <div key={roleGroup.role}>
+              <p className="mb-1 text-xs font-bold text-slate-500">{roleGroup.role}</p>
+              {players.length === 0 ? (
+                <p className="text-xs text-slate-400">Nessuno disponibile</p>
+              ) : (
+                <ul className="space-y-1">
+                  {players.map((s) => (
+                    <li key={s.player_id} className="flex justify-between text-xs">
+                      <span className="flex items-center gap-1 text-slate-700">
+                        <span
+                          title={s.starter_probability != null ? `${s.starter_probability.toFixed(0)}% titolare` : 'Titolarità sconosciuta'}
+                          className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${starterDotClass(s.starter_probability)}`}
+                        />
+                        <span title={s.fascia}>{FASCIA_ICONS[s.fascia] ?? ''}</span>
+                        {s.name} <span className="text-slate-400">({s.team})</span>
+                        {s.is_midfielder_bug && (
+                          <span
+                            title="Ruolo Mantra più avanzato: centrocampista con potenziale da attaccante"
+                            className="rounded bg-fuchsia-100 px-1 py-0.5 text-[9px] font-bold text-fuchsia-700"
+                          >
+                            BUG
+                          </span>
+                        )}
+                      </span>
+                      <span className="text-right shrink-0">
+                        <span className="font-medium text-slate-600">{s.quotation}</span>
+                        {s.avg_auction_price != null && (
+                          <span className="ml-1 text-slate-400">· media {s.avg_auction_price.toFixed(1)}</span>
+                        )}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )
+        })}
       </div>
     </div>
   )

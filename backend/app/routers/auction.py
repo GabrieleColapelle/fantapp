@@ -121,8 +121,8 @@ def get_all_role_gaps(league_id: int, db: Session = Depends(get_db)):
     return result
 
 
-@router.get("/suggestions", response_model=list[schemas.FasciaSuggestions])
-def get_suggestions(league_id: int, manager_id: int, role: str, db: Session = Depends(get_db)):
+@router.get("/suggestions/all", response_model=list[schemas.RoleSuggestions])
+def get_all_suggestions(league_id: int, manager_id: int, db: Session = Depends(get_db)):
     _get_league_or_404(league_id, db)
     manager = db.get(models.Manager, manager_id)
     if not manager or manager.league_id != league_id:
@@ -131,11 +131,7 @@ def get_suggestions(league_id: int, manager_id: int, role: str, db: Session = De
     spent = sum(p.price_paid for p in manager.picks)
     remaining_budget = manager.league.budget_total - spent
 
-    available = (
-        db.query(models.Player)
-        .filter(models.Player.league_id == league_id, models.Player.role == role.upper())
-        .all()
-    )
+    available = db.query(models.Player).filter(models.Player.league_id == league_id).all()
     available_dicts = [
         {
             "player_id": p.id,
@@ -145,13 +141,22 @@ def get_suggestions(league_id: int, manager_id: int, role: str, db: Session = De
             "quotation": p.quotation,
             "avg_auction_price": p.avg_auction_price,
             "starter_probability": p.starter_probability,
+            "is_midfielder_bug": p.is_midfielder_bug,
         }
         for p in available
         if p.pick is None
     ]
 
-    grouped = suggest_players_by_fascia(available_dicts, role.upper(), remaining_budget)
-    return [
-        schemas.FasciaSuggestions(fascia=name, players=[schemas.SuggestedPlayer(**p) for p in grouped[name]])
-        for name, _, _ in FASCE
-    ]
+    result = []
+    for role in ("P", "D", "C", "A"):
+        grouped = suggest_players_by_fascia(available_dicts, role, remaining_budget)
+        result.append(
+            schemas.RoleSuggestions(
+                role=role,
+                fasce=[
+                    schemas.FasciaSuggestions(fascia=name, players=[schemas.SuggestedPlayer(**p) for p in grouped[name]])
+                    for name, _, _ in FASCE
+                ],
+            )
+        )
+    return result

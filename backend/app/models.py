@@ -58,6 +58,8 @@ class Player(Base):
     status: Mapped[str] = mapped_column(String, default="")
     avg_auction_price: Mapped[float | None] = mapped_column(Float, nullable=True)
     starter_probability: Mapped[float | None] = mapped_column(Float, nullable=True)
+    mantra_role: Mapped[str] = mapped_column(String, default="")
+    is_midfielder_bug: Mapped[bool] = mapped_column(Boolean, default=False)
 
     league: Mapped["League"] = relationship(back_populates="players")
     pick: Mapped["AuctionPick | None"] = relationship(back_populates="player", uselist=False)

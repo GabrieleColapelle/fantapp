@@ -53,6 +53,8 @@ class PlayerOut(BaseModel):
     quotation: float
     avg_auction_price: float | None = None
     starter_probability: float | None = None
+    mantra_role: str = ""
+    is_midfielder_bug: bool = False
     tier: str
     status: str
     is_taken: bool
@@ -144,11 +146,17 @@ class SuggestedPlayer(BaseModel):
     quotation: float
     avg_auction_price: float | None = None
     starter_probability: float | None = None
+    is_midfielder_bug: bool = False
 
 
 class FasciaSuggestions(BaseModel):
     fascia: str
     players: list[SuggestedPlayer]
+
+
+class RoleSuggestions(BaseModel):
+    role: str
+    fasce: list[FasciaSuggestions]
 
 
 class MatchStatCreate(BaseModel):

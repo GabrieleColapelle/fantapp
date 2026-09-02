@@ -39,3 +39,26 @@ def test_parse_listone_skips_rows_with_unrecognized_role():
 def test_parse_listone_raises_when_no_rows_found():
     with pytest.raises(ListoneFetchError):
         _parse_listone_html("<html><body><table><tbody></tbody></table></body></html>")
+
+
+def test_parse_listone_flags_midfielder_with_advanced_mantra_role_as_bug():
+    # Baldanzi: Classic "C" but Mantra "c|t" (also trequartista-eligible).
+    players = _parse_listone_html(FIXTURE_HTML)
+    baldanzi = next(p for p in players if p["name"] == "Baldanzi")
+    assert baldanzi["mantra_role"] == "c|t"
+    assert baldanzi["is_midfielder_bug"] is True
+
+
+def test_parse_listone_does_not_flag_plain_midfielder():
+    # Frendrup: Classic "C", Mantra "m|c" — no advanced tag, not a bug.
+    players = _parse_listone_html(FIXTURE_HTML)
+    frendrup = next(p for p in players if p["name"] == "Frendrup")
+    assert frendrup["is_midfielder_bug"] is False
+
+
+def test_parse_listone_does_not_flag_non_midfielders():
+    # Malen is Classic "A" (attacker) with an advanced Mantra tag too, but
+    # the bug label only applies to players *listed* as midfielders.
+    players = _parse_listone_html(FIXTURE_HTML)
+    malen = next(p for p in players if p["name"] == "Malen")
+    assert malen["is_midfielder_bug"] is False
