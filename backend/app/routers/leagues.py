@@ -15,6 +15,7 @@ def create_league(payload: schemas.LeagueCreate, db: Session = Depends(get_db)):
         ruleset=payload.ruleset,
         budget_total=payload.budget_total,
         roster_config=payload.roster_config or dict(DEFAULT_ROSTER_CONFIG),
+        defense_modifier=payload.defense_modifier,
     )
     league.managers = [
         models.Manager(name=m.name, is_me=m.is_me) for m in payload.managers
@@ -42,6 +43,15 @@ def _get_league_or_404(league_id: int, db: Session) -> models.League:
     league = db.get(models.League, league_id)
     if not league:
         raise HTTPException(status_code=404, detail="Lega non trovata")
+    return league
+
+
+@router.patch("/{league_id}/defense-modifier", response_model=schemas.LeagueOut)
+def update_defense_modifier(league_id: int, payload: schemas.DefenseModifierUpdate, db: Session = Depends(get_db)):
+    league = _get_league_or_404(league_id, db)
+    league.defense_modifier = payload.defense_modifier
+    db.commit()
+    db.refresh(league)
     return league
 
 

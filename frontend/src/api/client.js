@@ -20,6 +20,11 @@ export const api = {
     request(`/leagues/${leagueId}/managers/${managerId}`, { method: 'PATCH', body: JSON.stringify(payload) }),
   deleteManager: (leagueId, managerId) =>
     request(`/leagues/${leagueId}/managers/${managerId}`, { method: 'DELETE' }),
+  updateDefenseModifier: (leagueId, defenseModifier) =>
+    request(`/leagues/${leagueId}/defense-modifier`, {
+      method: 'PATCH',
+      body: JSON.stringify({ defense_modifier: defenseModifier }),
+    }),
 
   listPlayers: (leagueId, params = {}) => {
     const qs = new URLSearchParams(params).toString()
@@ -46,6 +51,8 @@ export const api = {
   getRoleGaps: (leagueId, managerId) =>
     request(`/leagues/${leagueId}/auction/role-gaps?manager_id=${managerId}`),
   getAllRoleGaps: (leagueId) => request(`/leagues/${leagueId}/auction/role-gaps/all`),
+  getBudgetByRole: (leagueId, managerId) =>
+    request(`/leagues/${leagueId}/auction/budget-by-role?manager_id=${managerId}`),
   getAllSuggestions: (leagueId, managerId) =>
     request(`/leagues/${leagueId}/auction/suggestions/all?manager_id=${managerId}`),
 

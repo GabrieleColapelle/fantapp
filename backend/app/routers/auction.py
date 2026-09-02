@@ -3,7 +3,13 @@ from sqlalchemy.orm import Session
 
 from app import models, schemas
 from app.database import get_db
-from app.services.auction_logic import FASCE, classify_deal, role_gaps, suggest_players_by_fascia
+from app.services.auction_logic import (
+    FASCE,
+    classify_deal,
+    compute_role_budget,
+    role_gaps,
+    suggest_players_by_fascia,
+)
 
 router = APIRouter(prefix="/api/leagues/{league_id}/auction", tags=["auction"])
 
@@ -85,6 +91,20 @@ def get_budgets(league_id: int, db: Session = Depends(get_db)):
             )
         )
     return result
+
+
+@router.get("/budget-by-role", response_model=list[schemas.RoleBudget])
+def get_budget_by_role(league_id: int, manager_id: int, db: Session = Depends(get_db)):
+    league = _get_league_or_404(league_id, db)
+    manager = db.get(models.Manager, manager_id)
+    if not manager or manager.league_id != league_id:
+        raise HTTPException(status_code=404, detail="Manager non trovato in questa lega")
+
+    spent_by_role: dict[str, float] = {}
+    for pick in manager.picks:
+        spent_by_role[pick.player.role] = spent_by_role.get(pick.player.role, 0.0) + pick.price_paid
+
+    return compute_role_budget(spent_by_role, league.budget_total, league.defense_modifier)
 
 
 @router.get("/role-gaps", response_model=list[schemas.RoleGap])

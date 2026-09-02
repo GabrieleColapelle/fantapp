@@ -8,6 +8,7 @@ export default function LeagueSetup({ onCreated }) {
   const [ruleset, setRuleset] = useState('classic')
   const [budgetTotal, setBudgetTotal] = useState(500)
   const [roster, setRoster] = useState(DEFAULT_ROSTER)
+  const [defenseModifier, setDefenseModifier] = useState(false)
   const [managers, setManagers] = useState([
     { name: '', is_me: true },
     { name: '', is_me: false },
@@ -54,6 +55,7 @@ export default function LeagueSetup({ onCreated }) {
         ruleset,
         budget_total: Number(budgetTotal),
         roster_config: roster,
+        defense_modifier: defenseModifier,
         managers: cleanManagers,
       })
       onCreated(league)
@@ -119,6 +121,15 @@ export default function LeagueSetup({ onCreated }) {
           ))}
         </div>
       </div>
+
+      <label className="flex items-center gap-2 text-sm text-slate-700">
+        <input
+          type="checkbox"
+          checked={defenseModifier}
+          onChange={(e) => setDefenseModifier(e.target.checked)}
+        />
+        Modificatore difesa attivo (sposta l'obiettivo di budget consigliato verso la difesa)
+      </label>
 
       <div>
         <label className="mb-2 block text-sm font-medium text-slate-700">Manager della lega</label>

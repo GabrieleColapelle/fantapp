@@ -25,6 +25,7 @@ class League(Base):
     ruleset: Mapped[str] = mapped_column(String, default="classic")
     budget_total: Mapped[int] = mapped_column(Integer, default=500)
     roster_config: Mapped[dict] = mapped_column(JSON, default=lambda: dict(DEFAULT_ROSTER_CONFIG))
+    defense_modifier: Mapped[bool] = mapped_column(Boolean, default=False)
 
     managers: Mapped[list["Manager"]] = relationship(back_populates="league", cascade="all, delete-orphan")
     players: Mapped[list["Player"]] = relationship(back_populates="league", cascade="all, delete-orphan")

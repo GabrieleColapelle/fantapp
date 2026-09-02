@@ -42,6 +42,10 @@ export default function App() {
     setLeague(await api.getLeague(league.id))
   }
 
+  async function handleToggleDefenseModifier() {
+    setLeague(await api.updateDefenseModifier(league.id, !league.defense_modifier))
+  }
+
   if (loading) {
     return <div className="p-6 text-slate-500">Caricamento...</div>
   }
@@ -63,9 +67,16 @@ export default function App() {
           <p className="font-semibold text-slate-800">{league.name}</p>
           <p className="text-xs text-slate-500">
             {league.ruleset === 'mantra' ? 'Mantra' : 'Classic'} · Budget {league.budget_total} crediti
+            {league.defense_modifier && ' · Modificatore difesa'}
           </p>
         </div>
         <div className="flex items-center gap-3">
+          <button
+            onClick={handleToggleDefenseModifier}
+            className={`text-sm underline ${league.defense_modifier ? 'text-orange-600' : 'text-slate-400'}`}
+          >
+            Modificatore difesa: {league.defense_modifier ? 'ON' : 'OFF'}
+          </button>
           <button onClick={() => setShowManagers(true)} className="text-sm text-blue-600 underline">
             Manager ({league.managers.length})
           </button>

@@ -70,6 +70,43 @@ def classify_fascia(quotation: float) -> str | None:
     return None
 
 
+# Recommended budget split per role (% of total credits), sourced from
+# real 2026/27 auction data (50k+ purchases) and the dedicated defense-
+# modifier guide:
+# https://www.fantacalcio-online.com/it/consigli-fantacalcio/consigli-asta-fantacalcio-come-dividere-il-budget
+# https://www.fantacalcio-online.com/it/regole/guida-modificatore-difesa
+# Without the modifier the real median split is ~7/19/32/42; with it active
+# a fourth/fifth defender stops being optional (a reliable *starter*, not a
+# bonus punt) and guides converge on "at least 25%" for defenders, funded
+# mostly by trimming midfield rather than attack.
+ROLE_BUDGET_TARGETS = {"P": 7.0, "D": 19.0, "C": 32.0, "A": 42.0}
+ROLE_BUDGET_TARGETS_DEFENSE_MODIFIER = {"P": 7.0, "D": 25.0, "C": 30.0, "A": 38.0}
+
+
+def compute_role_budget(spent_by_role: dict[str, float], budget_total: int, defense_modifier: bool) -> list[dict]:
+    """For each role, how much of the recommended budget share has been
+    spent so far and how much is recommended to still be reserved for it —
+    a live check against overspending one department at the expense of
+    another during the auction."""
+    targets = ROLE_BUDGET_TARGETS_DEFENSE_MODIFIER if defense_modifier else ROLE_BUDGET_TARGETS
+
+    result = []
+    for role, target_pct in targets.items():
+        target_credits = budget_total * target_pct / 100
+        spent = spent_by_role.get(role, 0.0)
+        result.append(
+            {
+                "role": role,
+                "target_pct": target_pct,
+                "target_credits": target_credits,
+                "spent": spent,
+                "remaining_recommended": target_credits - spent,
+                "pct_used": (spent / target_credits * 100) if target_credits > 0 else 0.0,
+            }
+        )
+    return result
+
+
 def suggest_players_by_fascia(
     available_players: list[dict],
     role: str,

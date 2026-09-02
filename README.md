@@ -42,10 +42,13 @@ cd backend
 
 - [x] **Modulo 1 — Assistente Asta**: import quotazioni da CSV o
       automaticamente dal listone ufficiale Fantacalcio.it (con prezzi medi
-      reali pagati nelle aste italiane da Fantacalcio-Online, per confronto),
-      assegnazione giocatori multi-manager, budget in tempo reale, alert
-      buon affare/prezzo gonfiato, gap per ruolo, suggerimenti per fascia
-      di prezzo.
+      reali pagati nelle aste italiane da Fantacalcio-Online, probabili
+      titolari, alert "BUG" per i centrocampisti che giocano più avanzati,
+      rigoristi/battitori di punizioni), assegnazione giocatori
+      multi-manager con blocco anti-sforamento budget, budget in tempo
+      reale per manager e per reparto (con supporto al modificatore
+      difesa), alert buon affare/prezzo gonfiato, gap ruolo per tutti i
+      manager, suggerimenti per fascia di prezzo su tutti i ruoli insieme.
 - [x] **Modulo 2 — Assistente Formazioni** (solo Classic per ora): punteggio
       di consigliabilità per giocatore (forma recente, casa/trasferta,
       scontro diretto, rischio panchina/squalifica), formazione consigliata
