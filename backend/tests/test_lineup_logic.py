@@ -66,6 +66,27 @@ def test_compute_score_diffidato_flags_without_penalty():
     assert "rischio_squalifica" in diffidato.flags
 
 
+def test_compute_score_breakdown_explains_each_applied_factor():
+    stats = [stat(1, vote=4, opponent="Roma"), stat(2, vote=8, opponent="Lazio")]
+    result = compute_player_score(stats, opponent="Roma", home=True, status="dubbio")
+    joined = " | ".join(result.breakdown)
+    assert "Media voto stagionale" in joined
+    assert "Forma nelle ultime" in joined
+    assert "Gioca in casa" in joined
+    assert "Scontri diretti vs Roma" in joined
+    assert "in dubbio" in joined
+
+
+def test_compute_score_breakdown_notes_missing_history():
+    result = compute_player_score([], opponent=None, home=None, status="")
+    assert any("Nessuno storico voti disponibile" in line for line in result.breakdown)
+
+
+def test_compute_score_breakdown_empty_for_excluded_players():
+    result = compute_player_score([], opponent=None, home=None, status="infortunato")
+    assert result.breakdown == []
+
+
 def player(player_id, name, role, score, excluded_reason=None, flags=None):
     return {
         "player_id": player_id,

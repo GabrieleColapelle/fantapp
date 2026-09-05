@@ -227,6 +227,8 @@ class ScoredPlayer(BaseModel):
     flags: list[str]
     opponent: str | None = None
     home: bool | None = None
+    breakdown: list[str] = []
+    starter_probability: float | None = None
 
 
 class LineupAlternative(BaseModel):
@@ -241,6 +243,7 @@ class LineupRecommendation(BaseModel):
     bench: list[ScoredPlayer]
     alternatives: list[LineupAlternative]
     excluded: list[ScoredPlayer]
+    sources: list[str] = []
 
 
 class LineupSave(BaseModel):

@@ -193,6 +193,13 @@ def _score_player(player: models.Player, matchday: int, fixtures_by_team: dict[s
     home = fixture.home if fixture else None
 
     result = compute_player_score(stats, opponent, home, player.status)
+    breakdown = list(result.breakdown)
+    if player.starter_probability is not None:
+        breakdown.append(
+            f"Probabilità titolare da probabili formazioni: {player.starter_probability:.0f}% "
+            "(informativo, non ancora usato nel calcolo del punteggio)"
+        )
+
     return schemas.ScoredPlayer(
         player_id=player.id,
         name=player.name,
@@ -203,6 +210,8 @@ def _score_player(player: models.Player, matchday: int, fixtures_by_team: dict[s
         flags=result.flags,
         opponent=opponent,
         home=home,
+        breakdown=breakdown,
+        starter_probability=player.starter_probability,
     )
 
 
@@ -226,12 +235,24 @@ def recommend(league_id: int, manager_id: int, matchday: int, formation: str, db
     scored = [_score_player(p, matchday, fixtures_by_team) for p in owned_players]
     result = recommend_lineup([s.model_dump() for s in scored], formation)
 
+    sources = ["Voti storici: Fantacalcio.it (giornate già scaricate/importate)"]
+    sources.append(
+        "Calendario/avversario giornata corrente: "
+        + ("dati caricati manualmente" if fixtures_by_team else "non ancora caricato per questa giornata")
+    )
+    if any(p.starter_probability is not None for p in scored):
+        sources.append(
+            "Probabili formazioni (informativo): media pesata Fantacalcio.it, Gazzetta, SOS Fanta, Sky "
+            "(via Fantacalcio-Online)"
+        )
+
     return schemas.LineupRecommendation(
         formation=formation,
         starters=[schemas.ScoredPlayer(**p) for p in result["starters"]],
         bench=[schemas.ScoredPlayer(**p) for p in result["bench"]],
         alternatives=[schemas.LineupAlternative(**a) for a in result["alternatives"]],
         excluded=[schemas.ScoredPlayer(**p) for p in result["excluded"]],
+        sources=sources,
     )
 
 

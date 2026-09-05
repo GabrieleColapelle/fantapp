@@ -33,6 +33,7 @@ class PlayerScore:
     score: float | None
     excluded_reason: str | None = None
     flags: list[str] = field(default_factory=list)
+    breakdown: list[str] = field(default_factory=list)
 
 
 def compute_player_score(
@@ -42,44 +43,74 @@ def compute_player_score(
     status: str,
 ) -> PlayerScore:
     """`stats` is this player's match history, each a dict with keys
-    matchday, played, vote, opponent, home, sorted ascending by matchday."""
+    matchday, played, vote, opponent, home, sorted ascending by matchday.
+    `breakdown` collects one human-readable line per factor that actually
+    moved the score, in the order applied — used to explain a
+    recommendation in the UI, not just produce the number."""
     if status in EXCLUDING_STATUSES:
         return PlayerScore(score=None, excluded_reason=status)
 
+    breakdown: list[str] = []
+
     played_entries = [s for s in stats if s["played"] and s["vote"] is not None]
-    season_avg = sum(s["vote"] for s in played_entries) / len(played_entries) if played_entries else DEFAULT_VOTE
+    if played_entries:
+        season_avg = sum(s["vote"] for s in played_entries) / len(played_entries)
+        breakdown.append(f"Media voto stagionale: {season_avg:.2f} su {len(played_entries)} presenze")
+    else:
+        season_avg = DEFAULT_VOTE
+        breakdown.append(f"Nessuno storico voti disponibile: uso il voto base {DEFAULT_VOTE:.2f}")
 
     recent = stats[-RECENT_FORM_WINDOW:]
     recent_played = [s for s in recent if s["played"] and s["vote"] is not None]
-    recent_avg = sum(s["vote"] for s in recent_played) / len(recent_played) if recent_played else season_avg
+    if recent_played:
+        recent_avg = sum(s["vote"] for s in recent_played) / len(recent_played)
+        breakdown.append(f"Forma nelle ultime {len(recent_played)} giornate giocate: {recent_avg:.2f}")
+    else:
+        recent_avg = season_avg
 
     score = SEASON_WEIGHT * season_avg + RECENT_WEIGHT * recent_avg
+    breakdown.append(
+        f"Punteggio base ({SEASON_WEIGHT:.0%} media stagionale + {RECENT_WEIGHT:.0%} forma recente): {score:.2f}"
+    )
     flags: list[str] = []
 
     if home is True:
         score += HOME_BONUS
+        breakdown.append(f"Gioca in casa: +{HOME_BONUS:.2f}")
     elif home is False:
         score += AWAY_MALUS
+        breakdown.append(f"Gioca in trasferta: {AWAY_MALUS:.2f}")
 
     if opponent:
         h2h = [s for s in stats if s["played"] and s["vote"] is not None and s["opponent"] == opponent]
         if h2h:
             h2h_avg = sum(s["vote"] for s in h2h) / len(h2h)
             score = (1 - HEAD_TO_HEAD_WEIGHT) * score + HEAD_TO_HEAD_WEIGHT * h2h_avg
+            breakdown.append(
+                f"Scontri diretti vs {opponent}: media {h2h_avg:.2f} su {len(h2h)} precedenti "
+                f"(pesa {HEAD_TO_HEAD_WEIGHT:.0%} sul punteggio finale)"
+            )
 
     if recent:
-        played_ratio = len([s for s in recent if s["played"]]) / len(recent)
+        played_count = len([s for s in recent if s["played"]])
+        played_ratio = played_count / len(recent)
         if played_ratio < PRESENCE_RISK_THRESHOLD:
             score -= PRESENCE_RISK_PENALTY
             flags.append("rischio_panchina")
+            breakdown.append(
+                f"Ha giocato solo {played_count}/{len(recent)} delle ultime giornate: "
+                f"rischio panchina (-{PRESENCE_RISK_PENALTY:.2f})"
+            )
 
     if status == "dubbio":
         score -= DUBBIO_PENALTY
         flags.append("in_dubbio")
+        breakdown.append(f"Stato \"in dubbio\": penalità -{DUBBIO_PENALTY:.2f}")
     elif status == "diffidato":
         flags.append("rischio_squalifica")
+        breakdown.append("Diffidato: rischio squalifica alla prossima ammonizione (nessuna penalità al punteggio)")
 
-    return PlayerScore(score=score, flags=flags)
+    return PlayerScore(score=score, flags=flags, breakdown=breakdown)
 
 
 def recommend_lineup(players: list[dict], formation: str) -> dict:
