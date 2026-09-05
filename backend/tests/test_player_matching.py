@@ -1,4 +1,4 @@
-from app.services.player_matching import match_avg_prices, match_probable_lineups, match_set_piece_takers
+from app.services.player_matching import match_avg_prices, match_match_votes, match_probable_lineups, match_set_piece_takers
 
 
 def player(id, name, team, role):
@@ -162,3 +162,30 @@ def test_match_set_piece_takers_counts_unmatched_across_both_lists():
     result = match_set_piece_takers(players, data)
     assert result.penalty_rank == {}
     assert result.unmatched == 2
+
+
+def vote_row(name, team, opponent, home, vote):
+    return {"name": name, "team": team, "opponent": opponent, "home": home, "vote": vote}
+
+
+def test_match_match_votes_sets_vote_opponent_and_home():
+    players = [player(1, "Carnesecchi", "Atalanta", "P")]
+    rows = [vote_row("Carnesecchi", "Atalanta", "Sassuolo", True, 6.5)]
+    result = match_match_votes(players, rows)
+    assert result.matched == {1: {"vote": 6.5, "opponent": "Sassuolo", "home": True}}
+    assert result.unmatched == 0
+
+
+def test_match_match_votes_matches_full_name_to_abbreviated_stored_name():
+    players = [player(1, "Martinez L.", "Inter", "A")]
+    rows = [vote_row("Lautaro Martinez", "Inter", "Monza", True, 7.0)]
+    result = match_match_votes(players, rows)
+    assert result.matched == {1: {"vote": 7.0, "opponent": "Monza", "home": True}}
+
+
+def test_match_match_votes_counts_unmatched():
+    players = [player(1, "Malen", "Roma", "A")]
+    rows = [vote_row("Someone Else", "Roma", "Fiorentina", True, 6.0)]
+    result = match_match_votes(players, rows)
+    assert result.matched == {}
+    assert result.unmatched == 1

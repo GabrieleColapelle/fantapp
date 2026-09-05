@@ -13,6 +13,8 @@ export default function Lineup({ league }) {
   const [formation, setFormation] = useState('4-3-3')
   const [recommendation, setRecommendation] = useState(null)
   const [importResult, setImportResult] = useState(null)
+  const [votesRefreshing, setVotesRefreshing] = useState(false)
+  const [votesResult, setVotesResult] = useState(null)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -40,6 +42,20 @@ export default function Lineup({ league }) {
       setImportResult({ kind, ...result })
     } catch (err) {
       setError(err.message)
+    }
+  }
+
+  async function handleRefreshVotes() {
+    setError('')
+    setVotesResult(null)
+    setVotesRefreshing(true)
+    try {
+      const result = await api.refreshMatchVotes(league.id, Number(matchday))
+      setVotesResult(result)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setVotesRefreshing(false)
     }
   }
 
@@ -78,36 +94,67 @@ export default function Lineup({ league }) {
   return (
     <div className="space-y-4">
       <div className="rounded-lg bg-white p-4 shadow-sm sm:p-6">
-        <h2 className="mb-1 text-lg font-semibold text-slate-800">Importa dati partite</h2>
+        <h2 className="mb-1 text-lg font-semibold text-slate-800">Voti giornata</h2>
         <p className="mb-3 text-sm text-slate-500">
-          Carica i voti delle giornate passate e il calendario/avversari per calcolare i
-          punteggi di consigliabilità.
+          Scarica in automatico i voti ufficiali Fantacalcio.it della giornata (con avversario e
+          casa/trasferta) per calcolare i punteggi di consigliabilità — nessun file da caricare.
         </p>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="flex flex-wrap items-end gap-3">
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-600">Voti giornata (CSV)</label>
+            <label className="mb-1 block text-xs font-medium text-slate-600">Giornata</label>
             <input
-              type="file"
-              accept=".csv"
-              onChange={(e) => e.target.files[0] && handleImport('stats', e.target.files[0])}
-              className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-md file:border-0 file:bg-blue-600 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-white hover:file:bg-blue-700"
+              type="number"
+              min={1}
+              value={matchday}
+              onChange={(e) => setMatchday(e.target.value)}
+              className="w-24 rounded-md border border-slate-300 px-2 py-1.5 text-sm"
             />
           </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-slate-600">Calendario/avversari (CSV)</label>
-            <input
-              type="file"
-              accept=".csv"
-              onChange={(e) => e.target.files[0] && handleImport('fixtures', e.target.files[0])}
-              className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-md file:border-0 file:bg-blue-600 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-white hover:file:bg-blue-700"
-            />
-          </div>
+          <button
+            onClick={handleRefreshVotes}
+            disabled={votesRefreshing}
+            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+          >
+            {votesRefreshing ? 'Aggiorno...' : 'Aggiorna voti da Fantacalcio.it'}
+          </button>
         </div>
-        {importResult && (
+        {votesResult && (
           <p className="mt-3 text-sm text-slate-600">
-            Importate <strong>{importResult.imported}</strong> righe, {importResult.skipped} saltate.
+            Aggiornati <strong>{votesResult.updated}</strong> giocatori, {votesResult.unmatched} non
+            trovati in rosa (normale: contiene tutta la Serie A, non solo i tuoi).
           </p>
         )}
+
+        <details className="mt-4">
+          <summary className="cursor-pointer text-xs font-medium text-slate-500">
+            Non riesci a scaricarli? Importa da CSV manualmente
+          </summary>
+          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-xs font-medium text-slate-600">Voti giornata (CSV)</label>
+              <input
+                type="file"
+                accept=".csv"
+                onChange={(e) => e.target.files[0] && handleImport('stats', e.target.files[0])}
+                className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-md file:border-0 file:bg-blue-600 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-white hover:file:bg-blue-700"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-slate-600">Calendario/avversari (CSV)</label>
+              <input
+                type="file"
+                accept=".csv"
+                onChange={(e) => e.target.files[0] && handleImport('fixtures', e.target.files[0])}
+                className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-md file:border-0 file:bg-blue-600 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-white hover:file:bg-blue-700"
+              />
+            </div>
+          </div>
+          {importResult && (
+            <p className="mt-3 text-sm text-slate-600">
+              Importate <strong>{importResult.imported}</strong> righe, {importResult.skipped} saltate.
+            </p>
+          )}
+        </details>
       </div>
 
       <PlayerStatusList players={myPlayers} onStatusChange={handleStatusChange} />

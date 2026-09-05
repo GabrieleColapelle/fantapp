@@ -143,6 +143,33 @@ def _match_ranked_rows(index: "PlayerNameIndex", rows: list[dict]) -> tuple[dict
     return rank_by_player, unmatched
 
 
+@dataclass
+class MatchVotesMatchResult:
+    matched: dict[int, dict]  # player_id -> {"vote", "opponent", "home"}
+    unmatched: int
+
+
+def match_match_votes(players: list[dict], rows: list[dict]) -> MatchVotesMatchResult:
+    """`players`: existing league players as dicts with id/name/team/role.
+    `rows`: parsed rows from fetch_match_votes(), each with
+    name/team/opponent/home/vote. Fantacalcio.it's voti page already uses
+    the same abbreviated names as the listone (e.g. "Adams A."), so this
+    usually matches on the very first token; role isn't in the source, so
+    matching relies on name+team alone, same as set-piece takers."""
+    index = PlayerNameIndex(players)
+    matched: dict[int, dict] = {}
+    unmatched = 0
+
+    for row in rows:
+        player = index.resolve(row["name"], row["team"], role=None)
+        if player:
+            matched[player["id"]] = {"vote": row["vote"], "opponent": row["opponent"], "home": row["home"]}
+        else:
+            unmatched += 1
+
+    return MatchVotesMatchResult(matched=matched, unmatched=unmatched)
+
+
 def match_set_piece_takers(players: list[dict], data: dict) -> SetPieceTakersMatchResult:
     """`players`: existing league players as dicts with id/name/team (role
     not needed here — the source doesn't carry one, so matching relies on
