@@ -1,4 +1,10 @@
-from app.services.lineup_logic import DEFAULT_VOTE, compute_player_score, recommend_lineup
+from app.services.lineup_logic import (
+    DEFAULT_VOTE,
+    compute_player_score,
+    describe_opponent_attack,
+    rank_teams_by_attack,
+    recommend_lineup,
+)
 
 
 def stat(matchday, played=True, vote=6.0, opponent="", home=True):
@@ -204,3 +210,35 @@ def test_recommend_lineup_flags_close_ballottaggio():
     assert any(p["name"] == "A1" for p in result["starters"])
     assert any(p["name"] == "A2" for p in result["bench"])
     assert result["alternatives"] == [{"role": "A", "starter": "A1", "alternative": "A2"}]
+
+
+def test_rank_teams_by_attack_weakest_first():
+    rates = {"Venezia": 0.5, "Napoli": 2.5, "Udinese": 1.5}
+    ranks = rank_teams_by_attack(rates)
+    assert ranks == {"Venezia": 1, "Udinese": 2, "Napoli": 3}
+
+
+def test_describe_opponent_attack_flags_weak_attack():
+    text = describe_opponent_attack("Venezia", rate=0.5, played=5, rank=1, total=20)
+    assert "Venezia" in text
+    assert "più deboli" in text
+
+
+def test_describe_opponent_attack_flags_dangerous_attack():
+    text = describe_opponent_attack("Napoli", rate=2.5, played=5, rank=19, total=20)
+    assert "più pericolosi" in text
+
+
+def test_describe_opponent_attack_flags_average_attack():
+    text = describe_opponent_attack("Udinese", rate=1.3, played=5, rank=10, total=20)
+    assert "nella media" in text
+
+
+def test_describe_opponent_attack_notes_small_sample():
+    text = describe_opponent_attack("Venezia", rate=0.5, played=2, rank=1, total=20)
+    assert "provvisorio" in text
+
+
+def test_describe_opponent_attack_no_note_with_enough_games():
+    text = describe_opponent_attack("Venezia", rate=0.5, played=5, rank=1, total=20)
+    assert "provvisorio" not in text

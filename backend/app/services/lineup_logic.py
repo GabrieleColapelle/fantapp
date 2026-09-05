@@ -188,3 +188,25 @@ def recommend_lineup(players: list[dict], formation: str) -> dict:
         "alternatives": alternatives,
         "excluded": excluded,
     }
+
+
+def rank_teams_by_attack(goals_for_per_game_by_team: dict[str, float]) -> dict[str, int]:
+    """Ranks teams by goals scored per game, weakest attack first (rank 1)
+    — a raw decimal like "0.67 gol/partita" says little on its own; "3rd
+    weakest attack in the league" is what actually helps a decision."""
+    ranked = sorted(goals_for_per_game_by_team.items(), key=lambda item: item[1])
+    return {team: i + 1 for i, (team, _) in enumerate(ranked)}
+
+
+def describe_opponent_attack(team: str, rate: float, played: int, rank: int, total: int) -> str:
+    """One self-contained sentence explaining how dangerous an opponent's
+    attack is — used to justify a goalkeeper recommendation in plain
+    language instead of just a bare score."""
+    sample_note = "" if played >= 5 else f" (dato provvisorio, {played} partite giocate)"
+    if rank <= max(1, round(total / 3)):
+        tier = "uno degli attacchi più deboli del campionato"
+    elif rank > total - max(1, round(total / 3)):
+        tier = "uno degli attacchi più pericolosi del campionato"
+    else:
+        tier = "un attacco nella media"
+    return f"{team} segna {rate:.2f} gol/partita: {tier} ({rank}°/{total} per gol fatti){sample_note}"
