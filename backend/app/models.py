@@ -32,6 +32,7 @@ class League(Base):
     picks: Mapped[list["AuctionPick"]] = relationship(back_populates="league", cascade="all, delete-orphan")
     fixtures: Mapped[list["Fixture"]] = relationship(back_populates="league", cascade="all, delete-orphan")
     lineups: Mapped[list["Lineup"]] = relationship(back_populates="league", cascade="all, delete-orphan")
+    team_strengths: Mapped[list["TeamStrength"]] = relationship(back_populates="league", cascade="all, delete-orphan")
 
 
 class Manager(Base):
@@ -115,6 +116,21 @@ class Fixture(Base):
     league: Mapped["League"] = relationship(back_populates="fixtures")
 
     __table_args__ = (UniqueConstraint("league_id", "matchday", "team", name="uq_league_matchday_team"),)
+
+
+class TeamStrength(Base):
+    __tablename__ = "team_strengths"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    league_id: Mapped[int] = mapped_column(ForeignKey("leagues.id"), nullable=False)
+    team: Mapped[str] = mapped_column(String, nullable=False)
+    played: Mapped[int] = mapped_column(Integer, default=0)
+    goals_for_per_game: Mapped[float] = mapped_column(Float, default=0.0)
+    goals_against_per_game: Mapped[float] = mapped_column(Float, default=0.0)
+
+    league: Mapped["League"] = relationship(back_populates="team_strengths")
+
+    __table_args__ = (UniqueConstraint("league_id", "team", name="uq_league_team_strength"),)
 
 
 class Lineup(Base):

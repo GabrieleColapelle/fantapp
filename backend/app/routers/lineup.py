@@ -5,7 +5,9 @@ from app import models, schemas
 from app.database import get_db
 from app.services.lineup_logic import FORMATIONS, compute_player_score, recommend_lineup
 from app.services.player_matching import match_match_votes
+from app.services.providers.fixtures_provider import FixturesFetchError, fetch_fixtures
 from app.services.providers.match_votes_provider import MatchVotesFetchError, fetch_match_votes
+from app.services.providers.team_strength_provider import TeamStrengthFetchError, fetch_team_strength
 from app.services.stats_import import parse_fixtures_csv, parse_match_stats_csv
 
 router = APIRouter(prefix="/api/leagues/{league_id}/lineup", tags=["lineup"])
@@ -176,7 +178,64 @@ def list_fixtures(league_id: int, matchday: int, db: Session = Depends(get_db)):
     )
 
 
-def _score_player(player: models.Player, matchday: int, fixtures_by_team: dict[str, models.Fixture]) -> schemas.ScoredPlayer:
+@router.post("/fixtures/refresh", response_model=schemas.CsvImportResult)
+def refresh_fixtures(league_id: int, matchday: int, db: Session = Depends(get_db)):
+    _get_league_or_404(league_id, db)
+    try:
+        rows = fetch_fixtures(matchday)
+    except FixturesFetchError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"{exc} — puoi comunque inserire il calendario manualmente.",
+        ) from exc
+
+    for row in rows:
+        existing = (
+            db.query(models.Fixture)
+            .filter_by(league_id=league_id, matchday=row["matchday"], team=row["team"])
+            .first()
+        )
+        if existing:
+            existing.opponent = row["opponent"]
+            existing.home = row["home"]
+        else:
+            db.add(models.Fixture(league_id=league_id, **row))
+    db.commit()
+
+    return schemas.CsvImportResult(imported=len(rows), skipped=0, errors=[])
+
+
+@router.post("/team-strength/refresh", response_model=schemas.TeamStrengthRefreshResult)
+def refresh_team_strength(league_id: int, db: Session = Depends(get_db)):
+    _get_league_or_404(league_id, db)
+    try:
+        rows = fetch_team_strength()
+    except TeamStrengthFetchError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    existing_by_team = {
+        ts.team: ts
+        for ts in db.query(models.TeamStrength).filter(models.TeamStrength.league_id == league_id).all()
+    }
+    for row in rows:
+        existing = existing_by_team.get(row["team"])
+        if existing:
+            existing.played = row["played"]
+            existing.goals_for_per_game = row["goals_for_per_game"]
+            existing.goals_against_per_game = row["goals_against_per_game"]
+        else:
+            db.add(models.TeamStrength(league_id=league_id, **row))
+    db.commit()
+
+    return schemas.TeamStrengthRefreshResult(updated=len(rows), errors=[])
+
+
+def _score_player(
+    player: models.Player,
+    matchday: int,
+    fixtures_by_team: dict[str, models.Fixture],
+    strength_by_team: dict[str, models.TeamStrength],
+) -> schemas.ScoredPlayer:
     stats = [
         {
             "matchday": s.matchday,
@@ -192,7 +251,17 @@ def _score_player(player: models.Player, matchday: int, fixtures_by_team: dict[s
     opponent = fixture.opponent if fixture else None
     home = fixture.home if fixture else None
 
-    result = compute_player_score(stats, opponent, home, player.status)
+    opponent_strength = None
+    if opponent:
+        strength = strength_by_team.get(opponent)
+        if strength:
+            opponent_strength = {
+                "played": strength.played,
+                "goals_for_per_game": strength.goals_for_per_game,
+                "goals_against_per_game": strength.goals_against_per_game,
+            }
+
+    result = compute_player_score(stats, opponent, home, player.status, player.role, opponent_strength)
     breakdown = list(result.breakdown)
     if player.starter_probability is not None:
         breakdown.append(
@@ -232,14 +301,23 @@ def recommend(league_id: int, manager_id: int, matchday: int, formation: str, db
     fixtures = db.query(models.Fixture).filter_by(league_id=league_id, matchday=matchday).all()
     fixtures_by_team = {f.team: f for f in fixtures}
 
-    scored = [_score_player(p, matchday, fixtures_by_team) for p in owned_players]
+    team_strengths = db.query(models.TeamStrength).filter_by(league_id=league_id).all()
+    strength_by_team = {ts.team: ts for ts in team_strengths}
+
+    scored = [_score_player(p, matchday, fixtures_by_team, strength_by_team) for p in owned_players]
     result = recommend_lineup([s.model_dump() for s in scored], formation)
 
     sources = ["Voti storici: Fantacalcio.it (giornate già scaricate/importate)"]
     sources.append(
-        "Calendario/avversario giornata corrente: "
-        + ("dati caricati manualmente" if fixtures_by_team else "non ancora caricato per questa giornata")
+        "Calendario/avversario giornata corrente: Fantacalcio.it"
+        if fixtures_by_team
+        else "Calendario/avversario giornata corrente: non ancora caricato per questa giornata"
     )
+    if strength_by_team:
+        sources.append(
+            "Forza avversario (gol fatti/subiti a partita): classifica Serie A da Wikipedia, "
+            "affidabilità crescente col numero di partite giocate"
+        )
     if any(p.starter_probability is not None for p in scored):
         sources.append(
             "Probabili formazioni (informativo): media pesata Fantacalcio.it, Gazzetta, SOS Fanta, Sky "
@@ -254,6 +332,55 @@ def recommend(league_id: int, manager_id: int, matchday: int, formation: str, db
         excluded=[schemas.ScoredPlayer(**p) for p in result["excluded"]],
         sources=sources,
     )
+
+
+@router.get("/goalkeeper-advice", response_model=list[schemas.GoalkeeperOption])
+def goalkeeper_advice(league_id: int, manager_id: int, matchday: int, db: Session = Depends(get_db)):
+    """Compares every goalkeeper the manager owns for the given giornata —
+    the classic "griglia portieri" decision: with similar-quality backup
+    keepers, who starts usually just comes down to which one has the
+    easier opponent. Reuses _score_player, which already folds the
+    opponent-strength factor in, so this is just that same score
+    presented as a focused side-by-side view instead of buried among the
+    other roles."""
+    _get_league_or_404(league_id, db)
+    _get_manager_or_404(league_id, manager_id, db)
+
+    owned_keepers = (
+        db.query(models.Player)
+        .join(models.AuctionPick, models.AuctionPick.player_id == models.Player.id)
+        .filter(
+            models.AuctionPick.manager_id == manager_id,
+            models.AuctionPick.league_id == league_id,
+            models.Player.role == "P",
+        )
+        .all()
+    )
+
+    fixtures = db.query(models.Fixture).filter_by(league_id=league_id, matchday=matchday).all()
+    fixtures_by_team = {f.team: f for f in fixtures}
+    strength_by_team = {
+        ts.team: ts for ts in db.query(models.TeamStrength).filter_by(league_id=league_id).all()
+    }
+
+    scored = [_score_player(p, matchday, fixtures_by_team, strength_by_team) for p in owned_keepers]
+    available = [s for s in scored if s.score is not None]
+    best_id = max(available, key=lambda s: s.score).player_id if available else None
+
+    return [
+        schemas.GoalkeeperOption(
+            player_id=s.player_id,
+            name=s.name,
+            team=s.team,
+            opponent=s.opponent,
+            home=s.home,
+            score=s.score,
+            excluded_reason=s.excluded_reason,
+            breakdown=s.breakdown,
+            recommended=(s.player_id == best_id),
+        )
+        for s in scored
+    ]
 
 
 @router.post("/save", response_model=schemas.LineupOut)
