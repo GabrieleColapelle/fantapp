@@ -10,10 +10,16 @@ const EXCLUDED_LABELS = {
 }
 
 function PlayerRow({ player }) {
+  const hasExplanation = player.breakdown && player.breakdown.length > 0
+
   return (
-    <div className="flex items-center justify-between gap-2 py-1.5 text-sm">
+    <div className="group relative flex items-center justify-between gap-2 py-1.5 text-sm">
       <div className="flex flex-wrap items-center gap-1.5">
-        <span className="font-medium text-slate-700">{player.name}</span>
+        <span
+          className={`font-medium text-slate-700 ${hasExplanation ? 'cursor-help decoration-dotted decoration-slate-300 underline underline-offset-2' : ''}`}
+        >
+          {player.name}
+        </span>
         <span className="text-xs text-slate-400">
           {player.role}
           {player.opponent && ` · vs ${player.opponent} (${player.home ? 'casa' : 'trasferta'})`}
@@ -25,22 +31,46 @@ function PlayerRow({ player }) {
         ))}
       </div>
       {player.score != null && <span className="font-semibold text-slate-700">{player.score.toFixed(2)}</span>}
+
+      {hasExplanation && (
+        <div className="pointer-events-none absolute left-0 top-full z-10 mt-1 w-72 rounded-md bg-slate-800 p-3 text-xs text-slate-100 opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100">
+          <p className="mb-1.5 font-semibold text-white">Perché {player.name}?</p>
+          <ul className="list-disc space-y-1 pl-4">
+            {player.breakdown.map((line, i) => (
+              <li key={i}>{line}</li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   )
 }
 
 export default function LineupResult({ recommendation, onSave, saving, saved }) {
-  const { starters, bench, alternatives, excluded } = recommendation
+  const { starters, bench, alternatives, excluded, sources } = recommendation
 
   return (
     <div className="space-y-3">
       <div className="rounded-lg bg-white p-4 shadow-sm">
-        <h3 className="mb-2 text-sm font-semibold text-slate-700">Titolari consigliati</h3>
+        <div className="mb-2 flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-slate-700">Titolari consigliati</h3>
+          <span className="text-[11px] text-slate-400">passa il mouse su un nome per il perché</span>
+        </div>
         <div className="divide-y divide-slate-100">
           {starters.map((p) => (
             <PlayerRow key={p.player_id} player={p} />
           ))}
         </div>
+        {sources && sources.length > 0 && (
+          <details className="mt-3 border-t border-slate-100 pt-2">
+            <summary className="cursor-pointer text-xs font-medium text-slate-500">Fonti consultate</summary>
+            <ul className="mt-1.5 list-disc space-y-0.5 pl-4 text-xs text-slate-500">
+              {sources.map((s, i) => (
+                <li key={i}>{s}</li>
+              ))}
+            </ul>
+          </details>
+        )}
       </div>
 
       {alternatives.length > 0 && (
