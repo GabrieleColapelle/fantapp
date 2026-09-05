@@ -260,6 +260,7 @@ class GoalkeeperOption(BaseModel):
     score: float | None
     excluded_reason: str | None = None
     breakdown: list[str] = []
+    opponent_description: str | None = None
     recommended: bool = False
 
 

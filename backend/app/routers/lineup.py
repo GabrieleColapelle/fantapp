@@ -3,7 +3,13 @@ from sqlalchemy.orm import Session
 
 from app import models, schemas
 from app.database import get_db
-from app.services.lineup_logic import FORMATIONS, compute_player_score, recommend_lineup
+from app.services.lineup_logic import (
+    FORMATIONS,
+    compute_player_score,
+    describe_opponent_attack,
+    rank_teams_by_attack,
+    recommend_lineup,
+)
 from app.services.player_matching import match_match_votes
 from app.services.providers.fixtures_provider import FixturesFetchError, fetch_fixtures
 from app.services.providers.match_votes_provider import MatchVotesFetchError, fetch_match_votes
@@ -362,25 +368,36 @@ def goalkeeper_advice(league_id: int, manager_id: int, matchday: int, db: Sessio
     strength_by_team = {
         ts.team: ts for ts in db.query(models.TeamStrength).filter_by(league_id=league_id).all()
     }
+    attack_rank_by_team = rank_teams_by_attack({team: ts.goals_for_per_game for team, ts in strength_by_team.items()})
+    total_teams = len(strength_by_team)
 
     scored = [_score_player(p, matchday, fixtures_by_team, strength_by_team) for p in owned_keepers]
     available = [s for s in scored if s.score is not None]
     best_id = max(available, key=lambda s: s.score).player_id if available else None
 
-    return [
-        schemas.GoalkeeperOption(
-            player_id=s.player_id,
-            name=s.name,
-            team=s.team,
-            opponent=s.opponent,
-            home=s.home,
-            score=s.score,
-            excluded_reason=s.excluded_reason,
-            breakdown=s.breakdown,
-            recommended=(s.player_id == best_id),
+    options = []
+    for s in scored:
+        opponent_description = None
+        if s.opponent and s.opponent in strength_by_team:
+            ts = strength_by_team[s.opponent]
+            opponent_description = describe_opponent_attack(
+                s.opponent, ts.goals_for_per_game, ts.played, attack_rank_by_team[s.opponent], total_teams
+            )
+        options.append(
+            schemas.GoalkeeperOption(
+                player_id=s.player_id,
+                name=s.name,
+                team=s.team,
+                opponent=s.opponent,
+                home=s.home,
+                score=s.score,
+                excluded_reason=s.excluded_reason,
+                breakdown=s.breakdown,
+                opponent_description=opponent_description,
+                recommended=(s.player_id == best_id),
+            )
         )
-        for s in scored
-    ]
+    return options
 
 
 @router.post("/save", response_model=schemas.LineupOut)
