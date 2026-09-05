@@ -107,6 +107,12 @@ class SetPieceTakersRefreshResult(BaseModel):
     errors: list[str]
 
 
+class MatchVotesRefreshResult(BaseModel):
+    updated: int
+    unmatched: int
+    errors: list[str]
+
+
 class AuctionPickCreate(BaseModel):
     player_id: int
     manager_id: int

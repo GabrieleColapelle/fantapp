@@ -4,6 +4,8 @@ from sqlalchemy.orm import Session
 from app import models, schemas
 from app.database import get_db
 from app.services.lineup_logic import FORMATIONS, compute_player_score, recommend_lineup
+from app.services.player_matching import match_match_votes
+from app.services.providers.match_votes_provider import MatchVotesFetchError, fetch_match_votes
 from app.services.stats_import import parse_fixtures_csv, parse_match_stats_csv
 
 router = APIRouter(prefix="/api/leagues/{league_id}/lineup", tags=["lineup"])
@@ -71,6 +73,51 @@ async def import_match_stats_csv(league_id: int, file: UploadFile, db: Session =
     db.commit()
 
     return schemas.CsvImportResult(imported=len(rows), skipped=len(errors), errors=errors)
+
+
+@router.post("/match-stats/refresh", response_model=schemas.MatchVotesRefreshResult)
+def refresh_match_votes(league_id: int, matchday: int, db: Session = Depends(get_db)):
+    _get_league_or_404(league_id, db)
+    try:
+        rows = fetch_match_votes(matchday)
+    except MatchVotesFetchError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"{exc} — puoi comunque importare un CSV manualmente.",
+        ) from exc
+
+    league_players = db.query(models.Player).filter(models.Player.league_id == league_id).all()
+    player_dicts = [{"id": p.id, "name": p.name, "team": p.team, "role": p.role} for p in league_players]
+
+    result = match_match_votes(player_dicts, rows)
+    existing_by_player = {
+        s.player_id: s
+        for s in db.query(models.PlayerMatchStat)
+        .join(models.Player, models.PlayerMatchStat.player_id == models.Player.id)
+        .filter(models.Player.league_id == league_id, models.PlayerMatchStat.matchday == matchday)
+        .all()
+    }
+    for player_id, data in result.matched.items():
+        existing = existing_by_player.get(player_id)
+        if existing:
+            existing.vote = data["vote"]
+            existing.opponent = data["opponent"]
+            existing.home = data["home"]
+            existing.played = True
+        else:
+            db.add(
+                models.PlayerMatchStat(
+                    player_id=player_id,
+                    matchday=matchday,
+                    played=True,
+                    vote=data["vote"],
+                    opponent=data["opponent"],
+                    home=data["home"],
+                )
+            )
+    db.commit()
+
+    return schemas.MatchVotesRefreshResult(updated=len(result.matched), unmatched=result.unmatched, errors=[])
 
 
 @router.post("/fixtures", response_model=schemas.FixtureOut)

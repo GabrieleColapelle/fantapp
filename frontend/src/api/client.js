@@ -72,6 +72,8 @@ export const api = {
     form.append('file', file)
     return request(`/leagues/${leagueId}/lineup/fixtures/import-csv`, { method: 'POST', body: form })
   },
+  refreshMatchVotes: (leagueId, matchday) =>
+    request(`/leagues/${leagueId}/lineup/match-stats/refresh?matchday=${matchday}`, { method: 'POST' }),
   getRecommendation: (leagueId, managerId, matchday, formation) =>
     request(
       `/leagues/${leagueId}/lineup/recommend?manager_id=${managerId}&matchday=${matchday}&formation=${formation}`
