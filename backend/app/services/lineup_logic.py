@@ -15,6 +15,14 @@ PRESENCE_RISK_PENALTY = 1.0
 DUBBIO_PENALTY = 0.5
 BALLOTTAGGIO_GAP = 0.5
 
+# Roughly Serie A's long-run average goals scored (or conceded) by one
+# team in one game — the baseline an opponent's actual rate is compared
+# against to turn "they score little" / "they concede a lot" into a score
+# adjustment.
+AVERAGE_GOALS_PER_GAME = 1.3
+OPPONENT_STRENGTH_WEIGHT = 0.4
+DEFENSIVE_ROLES = {"P", "D"}
+
 EXCLUDING_STATUSES = {"infortunato", "squalificato"}
 
 FORMATIONS = {
@@ -41,9 +49,16 @@ def compute_player_score(
     opponent: str | None,
     home: bool | None,
     status: str,
+    role: str,
+    opponent_strength: dict | None = None,
 ) -> PlayerScore:
     """`stats` is this player's match history, each a dict with keys
     matchday, played, vote, opponent, home, sorted ascending by matchday.
+    `opponent_strength`, when available, is the upcoming opponent's
+    {played, goals_for_per_game, goals_against_per_game} — a goalkeeper or
+    defender benefits from a low-scoring opponent, a midfielder or
+    attacker benefits from a leaky one; the two roles react to the same
+    number in opposite directions, hence needing `role` here.
     `breakdown` collects one human-readable line per factor that actually
     moved the score, in the order applied — used to explain a
     recommendation in the UI, not just produce the number."""
@@ -80,6 +95,30 @@ def compute_player_score(
     elif home is False:
         score += AWAY_MALUS
         breakdown.append(f"Gioca in trasferta: {AWAY_MALUS:.2f}")
+
+    if opponent_strength:
+        played_sample = opponent_strength.get("played", 0)
+        sample_note = "" if played_sample >= 5 else f" (dato provvisorio, {played_sample} partite giocate)"
+        if role in DEFENSIVE_ROLES:
+            rate = opponent_strength["goals_for_per_game"]
+            delta = AVERAGE_GOALS_PER_GAME - rate
+            adjustment = delta * OPPONENT_STRENGTH_WEIGHT
+            score += adjustment
+            direction = "poco pericoloso" if delta > 0 else "pericoloso"
+            breakdown.append(
+                f"Avversario {opponent}: segna {rate:.2f} gol/partita ({direction}): "
+                f"{adjustment:+.2f}{sample_note}"
+            )
+        else:
+            rate = opponent_strength["goals_against_per_game"]
+            delta = rate - AVERAGE_GOALS_PER_GAME
+            adjustment = delta * OPPONENT_STRENGTH_WEIGHT
+            score += adjustment
+            direction = "permeabile" if delta > 0 else "solida"
+            breakdown.append(
+                f"Avversario {opponent}: subisce {rate:.2f} gol/partita (difesa {direction}): "
+                f"{adjustment:+.2f}{sample_note}"
+            )
 
     if opponent:
         h2h = [s for s in stats if s["played"] and s["vote"] is not None and s["opponent"] == opponent]

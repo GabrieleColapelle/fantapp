@@ -113,6 +113,11 @@ class MatchVotesRefreshResult(BaseModel):
     errors: list[str]
 
 
+class TeamStrengthRefreshResult(BaseModel):
+    updated: int
+    errors: list[str]
+
+
 class AuctionPickCreate(BaseModel):
     player_id: int
     manager_id: int
@@ -244,6 +249,18 @@ class LineupRecommendation(BaseModel):
     alternatives: list[LineupAlternative]
     excluded: list[ScoredPlayer]
     sources: list[str] = []
+
+
+class GoalkeeperOption(BaseModel):
+    player_id: int
+    name: str
+    team: str
+    opponent: str | None = None
+    home: bool | None = None
+    score: float | None
+    excluded_reason: str | None = None
+    breakdown: list[str] = []
+    recommended: bool = False
 
 
 class LineupSave(BaseModel):

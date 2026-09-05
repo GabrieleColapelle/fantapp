@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api } from '../api/client'
+import GoalkeeperAdvice from '../components/GoalkeeperAdvice'
 import LineupResult from '../components/LineupResult'
 import PlayerStatusList from '../components/PlayerStatusList'
 
@@ -12,9 +13,14 @@ export default function Lineup({ league }) {
   const [matchday, setMatchday] = useState(1)
   const [formation, setFormation] = useState('4-3-3')
   const [recommendation, setRecommendation] = useState(null)
+  const [goalkeepers, setGoalkeepers] = useState([])
   const [importResult, setImportResult] = useState(null)
   const [votesRefreshing, setVotesRefreshing] = useState(false)
   const [votesResult, setVotesResult] = useState(null)
+  const [fixturesRefreshing, setFixturesRefreshing] = useState(false)
+  const [fixturesResult, setFixturesResult] = useState(null)
+  const [strengthRefreshing, setStrengthRefreshing] = useState(false)
+  const [strengthResult, setStrengthResult] = useState(null)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -59,13 +65,45 @@ export default function Lineup({ league }) {
     }
   }
 
+  async function handleRefreshFixtures() {
+    setError('')
+    setFixturesResult(null)
+    setFixturesRefreshing(true)
+    try {
+      const result = await api.refreshFixtures(league.id, Number(matchday))
+      setFixturesResult(result)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setFixturesRefreshing(false)
+    }
+  }
+
+  async function handleRefreshTeamStrength() {
+    setError('')
+    setStrengthResult(null)
+    setStrengthRefreshing(true)
+    try {
+      const result = await api.refreshTeamStrength(league.id)
+      setStrengthResult(result)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setStrengthRefreshing(false)
+    }
+  }
+
   async function handleCompute() {
     setError('')
     setSaved(false)
     setLoading(true)
     try {
-      const rec = await api.getRecommendation(league.id, me.id, matchday, formation)
+      const [rec, gk] = await Promise.all([
+        api.getRecommendation(league.id, me.id, matchday, formation),
+        api.getGoalkeeperAdvice(league.id, me.id, matchday),
+      ])
       setRecommendation(rec)
+      setGoalkeepers(gk)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -157,6 +195,41 @@ export default function Lineup({ league }) {
         </details>
       </div>
 
+      <div className="rounded-lg bg-white p-4 shadow-sm sm:p-6">
+        <h2 className="mb-1 text-lg font-semibold text-slate-800">Calendario e forza avversari</h2>
+        <p className="mb-3 text-sm text-slate-500">
+          Scarica il calendario reale (avversario/casa-trasferta) e la classifica Serie A (gol
+          fatti/subiti a partita), usati per pesare le prossime partite: un difensore contro un
+          attacco debole, o un attaccante contro una difesa permeabile, valgono di più.
+        </p>
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={handleRefreshFixtures}
+            disabled={fixturesRefreshing}
+            className="rounded-md bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50"
+          >
+            {fixturesRefreshing ? 'Aggiorno...' : `Aggiorna calendario giornata ${matchday}`}
+          </button>
+          <button
+            onClick={handleRefreshTeamStrength}
+            disabled={strengthRefreshing}
+            className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+          >
+            {strengthRefreshing ? 'Aggiorno...' : 'Aggiorna forza squadre (classifica)'}
+          </button>
+        </div>
+        {fixturesResult && (
+          <p className="mt-3 text-sm text-slate-600">
+            Calendario aggiornato: <strong>{fixturesResult.imported}</strong> squadre per la giornata {matchday}.
+          </p>
+        )}
+        {strengthResult && (
+          <p className="mt-1 text-sm text-slate-600">
+            Classifica aggiornata: <strong>{strengthResult.updated}</strong> squadre.
+          </p>
+        )}
+      </div>
+
       <PlayerStatusList players={myPlayers} onStatusChange={handleStatusChange} />
 
       <div className="rounded-lg bg-white p-4 shadow-sm sm:p-6">
@@ -201,6 +274,8 @@ export default function Lineup({ league }) {
           <LineupResult recommendation={recommendation} onSave={handleSave} saving={saving} saved={saved} />
         )}
       </div>
+
+      <GoalkeeperAdvice goalkeepers={goalkeepers} />
     </div>
   )
 }

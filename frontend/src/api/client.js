@@ -74,6 +74,12 @@ export const api = {
   },
   refreshMatchVotes: (leagueId, matchday) =>
     request(`/leagues/${leagueId}/lineup/match-stats/refresh?matchday=${matchday}`, { method: 'POST' }),
+  refreshFixtures: (leagueId, matchday) =>
+    request(`/leagues/${leagueId}/lineup/fixtures/refresh?matchday=${matchday}`, { method: 'POST' }),
+  refreshTeamStrength: (leagueId) =>
+    request(`/leagues/${leagueId}/lineup/team-strength/refresh`, { method: 'POST' }),
+  getGoalkeeperAdvice: (leagueId, managerId, matchday) =>
+    request(`/leagues/${leagueId}/lineup/goalkeeper-advice?manager_id=${managerId}&matchday=${matchday}`),
   getRecommendation: (leagueId, managerId, matchday, formation) =>
     request(
       `/leagues/${leagueId}/lineup/recommend?manager_id=${managerId}&matchday=${matchday}&formation=${formation}`

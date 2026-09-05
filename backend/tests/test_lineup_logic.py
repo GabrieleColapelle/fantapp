@@ -6,7 +6,7 @@ def stat(matchday, played=True, vote=6.0, opponent="", home=True):
 
 
 def test_compute_score_no_data_uses_default_vote():
-    result = compute_player_score([], opponent=None, home=None, status="")
+    result = compute_player_score([], opponent=None, home=None, status="", role="D")
     assert result.score == DEFAULT_VOTE
     assert result.excluded_reason is None
 
@@ -17,58 +17,58 @@ def test_compute_score_weights_recent_form_more():
     # the same overall average, because recent form is weighted more.
     improving = [stat(1, vote=5), stat(2, vote=5), stat(3, vote=8), stat(4, vote=8), stat(5, vote=8)]
     declining = [stat(1, vote=8), stat(2, vote=8), stat(3, vote=8), stat(4, vote=5), stat(5, vote=5)]
-    improving_score = compute_player_score(improving, opponent=None, home=None, status="").score
-    declining_score = compute_player_score(declining, opponent=None, home=None, status="").score
+    improving_score = compute_player_score(improving, opponent=None, home=None, status="", role="D").score
+    declining_score = compute_player_score(declining, opponent=None, home=None, status="", role="D").score
     assert improving_score > declining_score
 
 
 def test_compute_score_home_bonus_and_away_malus():
     stats = [stat(1, vote=6)]
-    home_score = compute_player_score(stats, opponent=None, home=True, status="").score
-    away_score = compute_player_score(stats, opponent=None, home=False, status="").score
-    neutral_score = compute_player_score(stats, opponent=None, home=None, status="").score
+    home_score = compute_player_score(stats, opponent=None, home=True, status="", role="D").score
+    away_score = compute_player_score(stats, opponent=None, home=False, status="", role="D").score
+    neutral_score = compute_player_score(stats, opponent=None, home=None, status="", role="D").score
     assert home_score > neutral_score > away_score
 
 
 def test_compute_score_head_to_head_nudges_score():
     stats = [stat(1, vote=4, opponent="Roma"), stat(2, vote=4, opponent="Roma"), stat(3, vote=8, opponent="Lazio")]
-    vs_roma = compute_player_score(stats, opponent="Roma", home=None, status="").score
-    vs_unknown = compute_player_score(stats, opponent="Milan", home=None, status="").score
+    vs_roma = compute_player_score(stats, opponent="Roma", home=None, status="", role="D").score
+    vs_unknown = compute_player_score(stats, opponent="Milan", home=None, status="", role="D").score
     assert vs_roma < vs_unknown  # history vs Roma is worse, should pull the score down
 
 
 def test_compute_score_excludes_injured_and_suspended():
     for status in ("infortunato", "squalificato"):
-        result = compute_player_score([], opponent=None, home=None, status=status)
+        result = compute_player_score([], opponent=None, home=None, status=status, role="D")
         assert result.score is None
         assert result.excluded_reason == status
 
 
 def test_compute_score_flags_bench_risk_when_rarely_played():
     stats = [stat(1, played=False), stat(2, played=False), stat(3, played=True, vote=6), stat(4, played=False)]
-    result = compute_player_score(stats, opponent=None, home=None, status="")
+    result = compute_player_score(stats, opponent=None, home=None, status="", role="D")
     assert "rischio_panchina" in result.flags
 
 
 def test_compute_score_dubbio_penalizes_and_flags():
     stats = [stat(1, vote=7)]
-    normal = compute_player_score(stats, opponent=None, home=None, status="")
-    dubbio = compute_player_score(stats, opponent=None, home=None, status="dubbio")
+    normal = compute_player_score(stats, opponent=None, home=None, status="", role="D")
+    dubbio = compute_player_score(stats, opponent=None, home=None, status="dubbio", role="D")
     assert dubbio.score < normal.score
     assert "in_dubbio" in dubbio.flags
 
 
 def test_compute_score_diffidato_flags_without_penalty():
     stats = [stat(1, vote=7)]
-    normal = compute_player_score(stats, opponent=None, home=None, status="")
-    diffidato = compute_player_score(stats, opponent=None, home=None, status="diffidato")
+    normal = compute_player_score(stats, opponent=None, home=None, status="", role="D")
+    diffidato = compute_player_score(stats, opponent=None, home=None, status="diffidato", role="D")
     assert diffidato.score == normal.score
     assert "rischio_squalifica" in diffidato.flags
 
 
 def test_compute_score_breakdown_explains_each_applied_factor():
     stats = [stat(1, vote=4, opponent="Roma"), stat(2, vote=8, opponent="Lazio")]
-    result = compute_player_score(stats, opponent="Roma", home=True, status="dubbio")
+    result = compute_player_score(stats, opponent="Roma", home=True, status="dubbio", role="D")
     joined = " | ".join(result.breakdown)
     assert "Media voto stagionale" in joined
     assert "Forma nelle ultime" in joined
@@ -78,13 +78,64 @@ def test_compute_score_breakdown_explains_each_applied_factor():
 
 
 def test_compute_score_breakdown_notes_missing_history():
-    result = compute_player_score([], opponent=None, home=None, status="")
+    result = compute_player_score([], opponent=None, home=None, status="", role="D")
     assert any("Nessuno storico voti disponibile" in line for line in result.breakdown)
 
 
 def test_compute_score_breakdown_empty_for_excluded_players():
-    result = compute_player_score([], opponent=None, home=None, status="infortunato")
+    result = compute_player_score([], opponent=None, home=None, status="infortunato", role="D")
     assert result.breakdown == []
+
+
+def strength(played, goals_for_per_game, goals_against_per_game):
+    return {"played": played, "goals_for_per_game": goals_for_per_game, "goals_against_per_game": goals_against_per_game}
+
+
+def test_opponent_strength_rewards_defender_against_weak_attack():
+    stats = [stat(1, vote=6)]
+    weak_attack = strength(played=5, goals_for_per_game=0.5, goals_against_per_game=1.5)
+    strong_attack = strength(played=5, goals_for_per_game=2.5, goals_against_per_game=1.5)
+    vs_weak = compute_player_score(stats, opponent="X", home=None, status="", role="D", opponent_strength=weak_attack)
+    vs_strong = compute_player_score(
+        stats, opponent="X", home=None, status="", role="D", opponent_strength=strong_attack
+    )
+    no_data = compute_player_score(stats, opponent="X", home=None, status="", role="D")
+    assert vs_weak.score > no_data.score > vs_strong.score
+
+
+def test_opponent_strength_rewards_attacker_against_leaky_defense():
+    stats = [stat(1, vote=6)]
+    leaky_defense = strength(played=5, goals_for_per_game=1.5, goals_against_per_game=2.5)
+    solid_defense = strength(played=5, goals_for_per_game=1.5, goals_against_per_game=0.5)
+    vs_leaky = compute_player_score(stats, opponent="X", home=None, status="", role="A", opponent_strength=leaky_defense)
+    vs_solid = compute_player_score(
+        stats, opponent="X", home=None, status="", role="A", opponent_strength=solid_defense
+    )
+    assert vs_leaky.score > vs_solid.score
+
+
+def test_opponent_strength_uses_attack_rate_for_goalkeepers_too():
+    stats = [stat(1, vote=6)]
+    weak_attack = strength(played=5, goals_for_per_game=0.5, goals_against_per_game=1.5)
+    result = compute_player_score(stats, opponent="X", home=None, status="", role="P", opponent_strength=weak_attack)
+    baseline = compute_player_score(stats, opponent="X", home=None, status="", role="P")
+    assert result.score > baseline.score
+
+
+def test_opponent_strength_flags_small_sample_as_provisional():
+    stats = [stat(1, vote=6)]
+    result = compute_player_score(
+        stats, opponent="X", home=None, status="", role="D", opponent_strength=strength(2, 0.5, 1.5)
+    )
+    assert any("provvisorio" in line for line in result.breakdown)
+
+
+def test_opponent_strength_no_provisional_note_with_enough_games():
+    stats = [stat(1, vote=6)]
+    result = compute_player_score(
+        stats, opponent="X", home=None, status="", role="D", opponent_strength=strength(10, 0.5, 1.5)
+    )
+    assert not any("provvisorio" in line for line in result.breakdown)
 
 
 def player(player_id, name, role, score, excluded_reason=None, flags=None):
