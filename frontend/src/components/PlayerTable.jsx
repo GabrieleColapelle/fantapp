@@ -1,4 +1,15 @@
+import { useMemo } from 'react'
+
 const ROLES = ['P', 'D', 'C', 'A']
+
+function presenceDot(matches, avg) {
+  if (matches == null || avg == null) return null
+  const ratio = matches / avg
+  if (ratio >= 1.15) return { className: 'bg-green-600', label: 'molto sopra la media' }
+  if (ratio >= 1.0) return { className: 'bg-green-300', label: 'poco sopra la media' }
+  if (ratio >= 0.85) return { className: 'bg-amber-400', label: 'nella media' }
+  return { className: 'bg-red-500', label: 'sotto la media' }
+}
 
 function recoveryDaysLabel(expectedReturnDate) {
   if (!expectedReturnDate) return null
@@ -15,6 +26,12 @@ function starterClass(probability) {
 }
 
 export default function PlayerTable({ players, filters, onFiltersChange, managersById, onAssign, onRemove }) {
+  const avgMatches = useMemo(() => {
+    const withMatches = players.filter((p) => p.last_season_matches != null)
+    if (withMatches.length === 0) return null
+    return withMatches.reduce((sum, p) => sum + p.last_season_matches, 0) / withMatches.length
+  }, [players])
+
   return (
     <div className="rounded-lg bg-white shadow-sm">
       <div className="flex flex-wrap gap-2 border-b border-slate-100 p-3">
@@ -136,7 +153,20 @@ export default function PlayerTable({ players, filters, onFiltersChange, manager
                       {managersById[p.manager_id]?.name ?? '—'} · {p.price_paid}
                     </span>
                   ) : (
-                    <span className="text-slate-500">{p.last_season_matches ?? '—'}</span>
+                    <span className="flex items-center gap-1.5 text-slate-500">
+                      {(() => {
+                        const dot = presenceDot(p.last_season_matches, avgMatches)
+                        return (
+                          dot && (
+                            <span
+                              title={`${p.last_season_matches} presenze — ${dot.label} (media ${avgMatches.toFixed(1)})`}
+                              className={`inline-block h-2 w-2 shrink-0 rounded-full ${dot.className}`}
+                            />
+                          )
+                        )
+                      })()}
+                      {p.last_season_matches ?? '—'}
+                    </span>
                   )}
                 </td>
                 <td className="px-3 py-2 text-right">
