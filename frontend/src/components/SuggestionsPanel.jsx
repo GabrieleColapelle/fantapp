@@ -31,6 +31,11 @@ function PlayerRow({ s }) {
           {s.avg_auction_price != null && (
             <span className="ml-1 text-xs text-slate-400">· {s.avg_auction_price.toFixed(1)}</span>
           )}
+          {s.last_season_avg_fantavoto != null && (
+            <span className="ml-1 text-xs text-slate-400" title="Fantamedia stagione scorsa">
+              (FM {s.last_season_avg_fantavoto.toFixed(1)})
+            </span>
+          )}
         </span>
       </div>
       {hasBadges && (

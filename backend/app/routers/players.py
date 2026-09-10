@@ -1,10 +1,12 @@
+from datetime import date
+
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from app import models, schemas
 from app.database import get_db
 from app.services.csv_import import parse_players_csv
-from app.services.player_matching import match_avg_prices, match_probable_lineups, match_set_piece_takers
+from app.services.player_matching import match_avg_prices, match_probable_lineups, match_season_stats, match_set_piece_takers
 from app.services.providers.fantacalcio_online_provider import (
     AveragePriceFetchError,
     fetch_average_prices,
@@ -13,6 +15,7 @@ from app.services.providers.fantacalcio_online_provider import (
 from app.services.providers.fantacalcio_provider import ListoneFetchError, fetch_listone
 from app.services.providers.penalty_takers_provider import PenaltyTakersFetchError, fetch_set_piece_takers
 from app.services.providers.probable_lineups_provider import LineupsFetchError, fetch_probable_lineups
+from app.services.providers.season_stats_provider import SeasonStatsFetchError, fetch_season_stats
 
 router = APIRouter(prefix="/api/leagues/{league_id}/players", tags=["players"])
 
@@ -31,6 +34,9 @@ def _to_player_out(player: models.Player) -> schemas.PlayerOut:
         is_midfielder_bug=player.is_midfielder_bug,
         penalty_rank=player.penalty_rank,
         free_kick_rank=player.free_kick_rank,
+        last_season_matches=player.last_season_matches,
+        last_season_avg_vote=player.last_season_avg_vote,
+        last_season_avg_fantavoto=player.last_season_avg_fantavoto,
         tier=player.tier,
         status=player.status,
         is_taken=pick is not None,
@@ -226,4 +232,40 @@ def refresh_set_piece_takers(league_id: int, db: Session = Depends(get_db)):
         free_kick_takers_updated=len(result.free_kick_rank),
         unmatched=result.unmatched,
         errors=[],
+    )
+
+
+def _last_completed_season() -> str:
+    """The most recently finished Serie A season in "YYYY-YY" form. The
+    season in progress runs July through June, so the last completed one
+    started two calendar years ago if we're before July, one year ago
+    otherwise."""
+    today = date.today()
+    current_start_year = today.year if today.month >= 7 else today.year - 1
+    last_start_year = current_start_year - 1
+    return f"{last_start_year}-{str(last_start_year + 1)[2:]}"
+
+
+@router.post("/refresh-season-stats", response_model=schemas.SeasonStatsRefreshResult)
+def refresh_season_stats(league_id: int, season: str | None = None, db: Session = Depends(get_db)):
+    _get_league_or_404(league_id, db)
+    season = season or _last_completed_season()
+    try:
+        rows = fetch_season_stats(season)
+    except SeasonStatsFetchError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    league_players = db.query(models.Player).filter(models.Player.league_id == league_id).all()
+    player_dicts = [{"id": p.id, "name": p.name, "team": p.team, "role": p.role} for p in league_players]
+    players_by_id = {p.id: p for p in league_players}
+
+    result = match_season_stats(player_dicts, rows)
+    for player_id, data in result.matched.items():
+        players_by_id[player_id].last_season_matches = data["matches_played"]
+        players_by_id[player_id].last_season_avg_vote = data["avg_vote"]
+        players_by_id[player_id].last_season_avg_fantavoto = data["avg_fantavoto"]
+    db.commit()
+
+    return schemas.SeasonStatsRefreshResult(
+        season=season, updated=len(result.matched), unmatched=result.unmatched, errors=[]
     )

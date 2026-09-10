@@ -48,6 +48,7 @@ export default function PlayerTable({ players, filters, onFiltersChange, manager
               <th className="px-3 py-2">Squadra</th>
               <th className="px-3 py-2">Quot.</th>
               <th className="px-3 py-2">Media aste</th>
+              <th className="px-3 py-2" title="Fantamedia stagione scorsa">FM scorsa</th>
               <th className="px-3 py-2">Titolare</th>
               <th className="px-3 py-2">Stato</th>
               <th className="px-3 py-2" />
@@ -90,6 +91,15 @@ export default function PlayerTable({ players, filters, onFiltersChange, manager
                 <td className="px-3 py-2">{p.quotation}</td>
                 <td className="px-3 py-2 text-slate-500">
                   {p.avg_auction_price != null ? p.avg_auction_price.toFixed(1) : '—'}
+                </td>
+                <td className="px-3 py-2 text-slate-500">
+                  {p.last_season_avg_fantavoto != null ? (
+                    <span title={`${p.last_season_matches} presenze, media voto ${p.last_season_avg_vote?.toFixed(2)}`}>
+                      {p.last_season_avg_fantavoto.toFixed(2)}
+                    </span>
+                  ) : (
+                    '—'
+                  )}
                 </td>
                 <td className={`px-3 py-2 ${starterClass(p.starter_probability)}`}>
                   {p.starter_probability != null ? `${p.starter_probability.toFixed(0)}%` : '—'}

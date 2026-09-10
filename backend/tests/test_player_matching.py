@@ -1,4 +1,10 @@
-from app.services.player_matching import match_avg_prices, match_match_votes, match_probable_lineups, match_set_piece_takers
+from app.services.player_matching import (
+    match_avg_prices,
+    match_match_votes,
+    match_probable_lineups,
+    match_season_stats,
+    match_set_piece_takers,
+)
 
 
 def player(id, name, team, role):
@@ -187,5 +193,34 @@ def test_match_match_votes_counts_unmatched():
     players = [player(1, "Malen", "Roma", "A")]
     rows = [vote_row("Someone Else", "Roma", "Fiorentina", True, 6.0)]
     result = match_match_votes(players, rows)
+    assert result.matched == {}
+    assert result.unmatched == 1
+
+
+def season_row(name, team, role, matches_played, avg_vote, avg_fantavoto):
+    return {
+        "name": name,
+        "team": team,
+        "role": role,
+        "matches_played": matches_played,
+        "avg_vote": avg_vote,
+        "avg_fantavoto": avg_fantavoto,
+    }
+
+
+def test_match_season_stats_sets_averages():
+    players = [player(1, "Calhanoglu", "Inter", "C")]
+    rows = [season_row("Calhanoglu", "Inter", "C", 22, 6.52, 7.64)]
+    result = match_season_stats(players, rows)
+    assert result.matched == {1: {"matches_played": 22, "avg_vote": 6.52, "avg_fantavoto": 7.64}}
+    assert result.unmatched == 0
+
+
+def test_match_season_stats_leaves_transferred_player_unmatched():
+    # Same name, but the season-stats row still has last year's team —
+    # team-scoped matching (same as everywhere else) won't bridge that.
+    players = [player(1, "Kolo Muani", "Juventus", "A")]
+    rows = [season_row("Kolo Muani", "PSG", "A", 20, 6.1, 7.0)]
+    result = match_season_stats(players, rows)
     assert result.matched == {}
     assert result.unmatched == 1

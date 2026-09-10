@@ -144,6 +144,39 @@ def _match_ranked_rows(index: "PlayerNameIndex", rows: list[dict]) -> tuple[dict
 
 
 @dataclass
+class SeasonStatsMatchResult:
+    matched: dict[int, dict]  # player_id -> {"matches_played", "avg_vote", "avg_fantavoto"}
+    unmatched: int
+
+
+def match_season_stats(players: list[dict], rows: list[dict]) -> SeasonStatsMatchResult:
+    """`players`: existing league players as dicts with id/name/team/role.
+    `rows`: parsed rows from fetch_season_stats(), each with
+    name/team/role/matches_played/avg_vote/avg_fantavoto — same naming
+    convention as the listone (both come from Fantacalcio.it), so matching
+    is usually exact. Known limitation: matching is team-scoped like
+    everywhere else in this module, so a player who transferred clubs
+    over the summer won't match their last season's row (still on the old
+    team) — left unmatched rather than guessed, same policy as elsewhere."""
+    index = PlayerNameIndex(players)
+    matched: dict[int, dict] = {}
+    unmatched = 0
+
+    for row in rows:
+        player = index.resolve(row["name"], row["team"], row["role"])
+        if player:
+            matched[player["id"]] = {
+                "matches_played": row["matches_played"],
+                "avg_vote": row["avg_vote"],
+                "avg_fantavoto": row["avg_fantavoto"],
+            }
+        else:
+            unmatched += 1
+
+    return SeasonStatsMatchResult(matched=matched, unmatched=unmatched)
+
+
+@dataclass
 class MatchVotesMatchResult:
     matched: dict[int, dict]  # player_id -> {"vote", "opponent", "home"}
     unmatched: int
