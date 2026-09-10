@@ -57,7 +57,9 @@ export default function PlayerTable({ players, filters, onFiltersChange, manager
               <th className="px-3 py-2">Media aste</th>
               <th className="px-3 py-2" title="Fantamedia stagione scorsa">FM scorsa</th>
               <th className="px-3 py-2">Titolare</th>
-              <th className="px-3 py-2">Stato</th>
+              <th className="px-3 py-2" title="Presenze stagione scorsa (per i giocatori liberi); manager e prezzo (per quelli già presi)">
+                Presenze 25/26
+              </th>
               <th className="px-3 py-2" />
             </tr>
           </thead>
@@ -134,7 +136,7 @@ export default function PlayerTable({ players, filters, onFiltersChange, manager
                       {managersById[p.manager_id]?.name ?? '—'} · {p.price_paid}
                     </span>
                   ) : (
-                    <span className="text-green-600">libero</span>
+                    <span className="text-slate-500">{p.last_season_matches ?? '—'}</span>
                   )}
                 </td>
                 <td className="px-3 py-2 text-right">
