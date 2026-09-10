@@ -28,6 +28,17 @@ def test_parse_fixtures_covers_all_matches_for_the_matchday():
     assert len(rows) == 4  # 2 matches * 2 teams
 
 
+def test_parse_fixtures_dedupes_the_current_giornata_shown_twice():
+    # The live/current giornata is featured in an extra promo block on top
+    # of the regular match list, so its cards appear twice on the page —
+    # without deduping this would violate the one-row-per-team-per-giornata
+    # DB constraint (real bug hit live).
+    rows = _parse_fixtures_html(FIXTURE_HTML, matchday=3)
+    assert len(rows) == 2
+    teams = {r["team"] for r in rows}
+    assert teams == {"Genoa", "Como"}
+
+
 def test_parse_fixtures_raises_when_matchday_not_found():
     with pytest.raises(FixturesFetchError):
         _parse_fixtures_html(FIXTURE_HTML, matchday=99)
