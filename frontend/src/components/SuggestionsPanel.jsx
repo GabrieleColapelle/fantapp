@@ -5,6 +5,13 @@ const FASCIA_ICONS = {
   Scommesse: '🎲',
 }
 
+const ROLE_NAMES = {
+  P: 'Portieri',
+  D: 'Difensori',
+  C: 'Centrocampisti',
+  A: 'Attaccanti',
+}
+
 function starterDotClass(probability) {
   if (probability == null) return 'bg-slate-300'
   if (probability >= 70) return 'bg-green-500'
@@ -78,7 +85,7 @@ export default function SuggestionsPanel({ suggestions }) {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {suggestions.map((roleGroup) => (
           <div key={roleGroup.role} className="rounded-md border border-slate-100 p-3">
-            <p className="mb-2 text-sm font-bold text-slate-500">{roleGroup.role}</p>
+            <p className="mb-2 text-sm font-bold text-slate-500">{ROLE_NAMES[roleGroup.role] ?? roleGroup.role}</p>
             <div className="max-h-[420px] space-y-3 overflow-y-auto pr-1">
               {roleGroup.fasce.map((f) => (
                 <div key={f.fascia}>
