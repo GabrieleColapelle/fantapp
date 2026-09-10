@@ -13,6 +13,7 @@ async function request(path, options = {}) {
 
 export const api = {
   createLeague: (payload) => request('/leagues', { method: 'POST', body: JSON.stringify(payload) }),
+  listLeagues: () => request('/leagues'),
   getLeague: (leagueId) => request(`/leagues/${leagueId}`),
   addManager: (leagueId, payload) =>
     request(`/leagues/${leagueId}/managers`, { method: 'POST', body: JSON.stringify(payload) }),

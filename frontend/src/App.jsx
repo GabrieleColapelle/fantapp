@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { api } from './api/client'
 import ManagerSettingsModal from './components/ManagerSettingsModal'
 import Auction from './pages/Auction'
-import LeagueSetup from './pages/LeagueSetup'
+import LeagueSelect from './pages/LeagueSelect'
 import Lineup from './pages/Lineup'
 import PlayerImport from './pages/PlayerImport'
 
@@ -27,9 +27,9 @@ export default function App() {
       .finally(() => setLoading(false))
   }, [])
 
-  function handleLeagueCreated(newLeague) {
-    localStorage.setItem(LEAGUE_ID_KEY, newLeague.id)
-    setLeague(newLeague)
+  function handleLeagueSelected(selectedLeague) {
+    localStorage.setItem(LEAGUE_ID_KEY, selectedLeague.id)
+    setLeague(selectedLeague)
   }
 
   function handleChangeLeague() {
@@ -54,7 +54,7 @@ export default function App() {
     return (
       <div className="mx-auto max-w-2xl p-4 sm:p-6">
         <Header />
-        <LeagueSetup onCreated={handleLeagueCreated} />
+        <LeagueSelect onSelected={handleLeagueSelected} />
       </div>
     )
   }
