@@ -63,7 +63,7 @@ export default function PlayerTable({ players, filters, onFiltersChange, manager
         </label>
       </div>
 
-      <div className="max-h-[60vh] overflow-y-auto">
+      <div className="max-h-[70vh] overflow-y-auto">
         <table className="w-full text-sm">
           <thead className="sticky top-0 bg-slate-50 text-left text-xs uppercase text-slate-500">
             <tr>

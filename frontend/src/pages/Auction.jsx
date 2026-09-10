@@ -81,38 +81,41 @@ export default function Auction({ league }) {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_280px]">
-      <div className="order-2 space-y-3 lg:order-1">
-        {dealBanner && (
-          <div
-            className={`rounded-md p-3 text-sm font-medium ${
-              dealBanner.label === 'Buon affare'
-                ? 'bg-green-50 text-green-700'
-                : dealBanner.label === 'Prezzo gonfiato'
-                  ? 'bg-red-50 text-red-700'
-                  : 'bg-slate-100 text-slate-600'
-            }`}
-          >
-            {dealBanner.player}: {dealBanner.label} — {dealBanner.detail}
-          </div>
-        )}
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        <PlayerTable
-          players={players}
-          filters={filters}
-          onFiltersChange={setFilters}
-          managersById={managersById}
-          onAssign={setAssigningPlayer}
-          onRemove={handleRemovePick}
-        />
-        <SuggestionsPanel suggestions={suggestions} />
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_280px]">
+        <div className="order-2 space-y-3 lg:order-1">
+          {dealBanner && (
+            <div
+              className={`rounded-md p-3 text-sm font-medium ${
+                dealBanner.label === 'Buon affare'
+                  ? 'bg-green-50 text-green-700'
+                  : dealBanner.label === 'Prezzo gonfiato'
+                    ? 'bg-red-50 text-red-700'
+                    : 'bg-slate-100 text-slate-600'
+              }`}
+            >
+              {dealBanner.player}: {dealBanner.label} — {dealBanner.detail}
+            </div>
+          )}
+          {error && <p className="text-sm text-red-600">{error}</p>}
+          <PlayerTable
+            players={players}
+            filters={filters}
+            onFiltersChange={setFilters}
+            managersById={managersById}
+            onAssign={setAssigningPlayer}
+            onRemove={handleRemovePick}
+          />
+        </div>
+
+        <div className="order-1 space-y-3 lg:order-2">
+          <ManagerBudgetPanel budgets={budgets} players={rosterPlayers} />
+          <RoleBudgetPanel roleBudgets={roleBudgets} defenseModifier={league.defense_modifier} />
+          <AllManagersRoleGaps managerGaps={allRoleGaps} />
+        </div>
       </div>
 
-      <div className="order-1 space-y-3 lg:order-2">
-        <ManagerBudgetPanel budgets={budgets} players={rosterPlayers} />
-        <RoleBudgetPanel roleBudgets={roleBudgets} defenseModifier={league.defense_modifier} />
-        <AllManagersRoleGaps managerGaps={allRoleGaps} />
-      </div>
+      <SuggestionsPanel suggestions={suggestions} />
 
       {assigningPlayer && (
         <AssignPickModal
