@@ -20,7 +20,6 @@ function starterDotClass(probability) {
 }
 
 function PlayerRow({ s }) {
-  const hasBadges = s.is_midfielder_bug || s.penalty_rank != null
   return (
     <li className="py-1 text-sm">
       <div className="flex items-center justify-between gap-2">
@@ -33,7 +32,26 @@ function PlayerRow({ s }) {
             <img src={s.team_badge_url} alt="" title={s.team} className="h-4 w-4 shrink-0 object-contain" />
           )}
           <span className="truncate">
-            {s.name} <span className="text-xs text-slate-400">({s.team})</span>
+            {s.name}
+            {s.is_midfielder_bug && (
+              <span
+                title="Ruolo Mantra più avanzato: centrocampista con potenziale da attaccante"
+                className="ml-1 rounded bg-fuchsia-100 px-1 py-0.5 text-[10px] font-bold text-fuchsia-700"
+              >
+                BUG
+              </span>
+            )}
+            {s.penalty_rank != null && (
+              <span
+                title={`Rigorista ${s.penalty_rank === 1 ? 'titolare' : `di riserva (${s.penalty_rank}°)`}`}
+                className={`ml-1 rounded px-1 py-0.5 text-[10px] font-bold ${
+                  s.penalty_rank === 1 ? 'bg-orange-100 text-orange-700' : 'bg-orange-50 text-orange-500'
+                }`}
+              >
+                ⚽{s.penalty_rank}
+              </span>
+            )}{' '}
+            <span className="text-xs text-slate-400">({s.team})</span>
           </span>
         </span>
         <span className="shrink-0 text-right">
@@ -48,28 +66,6 @@ function PlayerRow({ s }) {
           )}
         </span>
       </div>
-      {hasBadges && (
-        <div className="ml-3.5 flex gap-1">
-          {s.is_midfielder_bug && (
-            <span
-              title="Ruolo Mantra più avanzato: centrocampista con potenziale da attaccante"
-              className="rounded bg-fuchsia-100 px-1 py-0.5 text-[10px] font-bold text-fuchsia-700"
-            >
-              BUG
-            </span>
-          )}
-          {s.penalty_rank != null && (
-            <span
-              title={`Rigorista ${s.penalty_rank === 1 ? 'titolare' : `di riserva (${s.penalty_rank}°)`}`}
-              className={`rounded px-1 py-0.5 text-[10px] font-bold ${
-                s.penalty_rank === 1 ? 'bg-orange-100 text-orange-700' : 'bg-orange-50 text-orange-500'
-              }`}
-            >
-              ⚽{s.penalty_rank}
-            </span>
-          )}
-        </div>
-      )}
     </li>
   )
 }
