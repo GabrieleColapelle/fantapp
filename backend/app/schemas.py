@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict
 
@@ -66,6 +66,8 @@ class PlayerOut(BaseModel):
     last_season_matches: int | None = None
     last_season_avg_vote: float | None = None
     last_season_avg_fantavoto: float | None = None
+    injury_description: str = ""
+    injury_expected_return_date: date | None = None
     tier: str
     status: str
     is_taken: bool
@@ -123,6 +125,12 @@ class TeamStrengthRefreshResult(BaseModel):
 
 class SeasonStatsRefreshResult(BaseModel):
     season: str
+    updated: int
+    unmatched: int
+    errors: list[str]
+
+
+class InjuriesRefreshResult(BaseModel):
     updated: int
     unmatched: int
     errors: list[str]

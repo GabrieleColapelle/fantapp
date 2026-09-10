@@ -203,6 +203,33 @@ def match_match_votes(players: list[dict], rows: list[dict]) -> MatchVotesMatchR
     return MatchVotesMatchResult(matched=matched, unmatched=unmatched)
 
 
+@dataclass
+class InjuriesMatchResult:
+    matched: dict[int, dict]  # player_id -> {"description", "expected_return_date"}
+    unmatched: int
+
+
+def match_injuries(players: list[dict], rows: list[dict]) -> InjuriesMatchResult:
+    """`players`: existing league players as dicts with id/name/team/role.
+    `rows`: parsed rows from fetch_injuries(), each with
+    name/team/description/expected_return_date."""
+    index = PlayerNameIndex(players)
+    matched: dict[int, dict] = {}
+    unmatched = 0
+
+    for row in rows:
+        player = index.resolve(row["name"], row["team"], role=None)
+        if player:
+            matched[player["id"]] = {
+                "description": row["description"],
+                "expected_return_date": row["expected_return_date"],
+            }
+        else:
+            unmatched += 1
+
+    return InjuriesMatchResult(matched=matched, unmatched=unmatched)
+
+
 def match_set_piece_takers(players: list[dict], data: dict) -> SetPieceTakersMatchResult:
     """`players`: existing league players as dicts with id/name/team (role
     not needed here — the source doesn't carry one, so matching relies on

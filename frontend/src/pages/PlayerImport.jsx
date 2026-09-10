@@ -23,6 +23,9 @@ export default function PlayerImport({ league, onDone }) {
   const [seasonStatsResult, setSeasonStatsResult] = useState(null)
   const [seasonStatsLoading, setSeasonStatsLoading] = useState(false)
   const [seasonStatsError, setSeasonStatsError] = useState('')
+  const [injuriesResult, setInjuriesResult] = useState(null)
+  const [injuriesLoading, setInjuriesLoading] = useState(false)
+  const [injuriesError, setInjuriesError] = useState('')
 
   const [manual, setManual] = useState({ name: '', role: 'P', team: '', quotation: '', tier: '' })
 
@@ -115,6 +118,19 @@ export default function PlayerImport({ league, onDone }) {
       setSeasonStatsError(err.message)
     } finally {
       setSeasonStatsLoading(false)
+    }
+  }
+
+  async function handleRefreshInjuries() {
+    setInjuriesLoading(true)
+    setInjuriesError('')
+    try {
+      const result = await api.refreshInjuries(league.id)
+      setInjuriesResult(result)
+    } catch (err) {
+      setInjuriesError(err.message)
+    } finally {
+      setInjuriesLoading(false)
     }
   }
 
@@ -256,6 +272,30 @@ export default function PlayerImport({ league, onDone }) {
           </p>
         )}
         {seasonStatsError && <p className="mt-3 text-sm text-red-600">{seasonStatsError}</p>}
+      </div>
+
+      <div className="rounded-lg bg-white p-4 shadow-sm sm:p-6">
+        <h2 className="mb-1 text-lg font-semibold text-slate-800">Infortunati</h2>
+        <p className="mb-3 text-sm text-slate-500">
+          Aggiorna infortuni e tempi di recupero, incrociando Fantacalcio.it (descrizione e data
+          stimata) e SOS Fanta (giornata di rientro, usata quando la data non si può stimare dalla
+          descrizione). Le date sono stime dei siti stessi, non garanzie — rieseguibile ad ogni
+          aggiornamento delle notizie.
+        </p>
+        <button
+          onClick={handleRefreshInjuries}
+          disabled={injuriesLoading}
+          className="rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+        >
+          {injuriesLoading ? 'Scaricamento...' : 'Aggiorna infortunati'}
+        </button>
+        {injuriesResult && (
+          <p className="mt-3 text-sm text-slate-600">
+            <strong>{injuriesResult.updated}</strong> giocatori infortunati aggiornati (
+            {injuriesResult.unmatched} non abbinati).
+          </p>
+        )}
+        {injuriesError && <p className="mt-3 text-sm text-red-600">{injuriesError}</p>}
       </div>
 
       <div className="rounded-lg bg-white p-4 shadow-sm sm:p-6">

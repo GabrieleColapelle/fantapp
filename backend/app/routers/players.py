@@ -6,13 +6,25 @@ from sqlalchemy.orm import Session
 from app import models, schemas
 from app.database import get_db
 from app.services.csv_import import parse_players_csv
-from app.services.player_matching import match_avg_prices, match_probable_lineups, match_season_stats, match_set_piece_takers
+from app.services.player_matching import (
+    match_avg_prices,
+    match_injuries,
+    match_probable_lineups,
+    match_season_stats,
+    match_set_piece_takers,
+)
 from app.services.providers.fantacalcio_online_provider import (
     AveragePriceFetchError,
     fetch_average_prices,
     select_price_column,
 )
 from app.services.providers.fantacalcio_provider import ListoneFetchError, fetch_listone
+from app.services.providers.injuries_provider import (
+    InjuriesFetchError,
+    estimate_date_from_matchday,
+    fetch_injuries,
+    fetch_recovery_matchdays,
+)
 from app.services.providers.penalty_takers_provider import PenaltyTakersFetchError, fetch_set_piece_takers
 from app.services.providers.probable_lineups_provider import LineupsFetchError, fetch_probable_lineups
 from app.services.providers.season_stats_provider import SeasonStatsFetchError, fetch_season_stats
@@ -37,6 +49,8 @@ def _to_player_out(player: models.Player) -> schemas.PlayerOut:
         last_season_matches=player.last_season_matches,
         last_season_avg_vote=player.last_season_avg_vote,
         last_season_avg_fantavoto=player.last_season_avg_fantavoto,
+        injury_description=player.injury_description,
+        injury_expected_return_date=player.injury_expected_return_date,
         tier=player.tier,
         status=player.status,
         is_taken=pick is not None,
@@ -269,3 +283,47 @@ def refresh_season_stats(league_id: int, season: str | None = None, db: Session 
     return schemas.SeasonStatsRefreshResult(
         season=season, updated=len(result.matched), unmatched=result.unmatched, errors=[]
     )
+
+
+@router.post("/refresh-injuries", response_model=schemas.InjuriesRefreshResult)
+def refresh_injuries(league_id: int, db: Session = Depends(get_db)):
+    _get_league_or_404(league_id, db)
+    try:
+        rows = fetch_injuries()
+    except InjuriesFetchError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    # Second source, used only to fill in a return-date estimate when the
+    # first source's free text didn't parse into one — its own failure
+    # shouldn't block the (more important) primary data from Fantacalcio.it.
+    try:
+        recovery_matchdays = fetch_recovery_matchdays()
+    except InjuriesFetchError:
+        recovery_matchdays = {}
+    recovery_matchdays_folded = {name.strip().lower(): matchday for name, matchday in recovery_matchdays.items()}
+
+    league_players = db.query(models.Player).filter(models.Player.league_id == league_id).all()
+    player_dicts = [{"id": p.id, "name": p.name, "team": p.team, "role": p.role} for p in league_players]
+    players_by_id = {p.id: p for p in league_players}
+
+    # Reset first: a player who recovered since the last refresh must stop
+    # showing a stale flag instead of keeping it forever once matched once.
+    for p in league_players:
+        p.injury_description = ""
+        p.injury_expected_return_date = None
+
+    result = match_injuries(player_dicts, rows)
+    today = date.today()
+    for player_id, data in result.matched.items():
+        player = players_by_id[player_id]
+        expected_return_date = data["expected_return_date"]
+        if expected_return_date is None:
+            matchday = recovery_matchdays_folded.get(player.name.strip().lower())
+            if matchday is not None:
+                expected_return_date = estimate_date_from_matchday(matchday, today)
+
+        player.injury_description = data["description"]
+        player.injury_expected_return_date = expected_return_date
+    db.commit()
+
+    return schemas.InjuriesRefreshResult(updated=len(result.matched), unmatched=result.unmatched, errors=[])

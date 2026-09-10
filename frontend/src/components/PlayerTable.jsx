@@ -1,5 +1,12 @@
 const ROLES = ['P', 'D', 'C', 'A']
 
+function recoveryDaysLabel(expectedReturnDate) {
+  if (!expectedReturnDate) return null
+  const days = Math.ceil((new Date(expectedReturnDate) - new Date().setHours(0, 0, 0, 0)) / 86400000)
+  if (days <= 0) return 'rientro imminente'
+  return `${days}g`
+}
+
 function starterClass(probability) {
   if (probability == null) return 'text-slate-400'
   if (probability >= 70) return 'text-green-600 font-medium'
@@ -59,6 +66,18 @@ export default function PlayerTable({ players, filters, onFiltersChange, manager
               <tr key={p.id} className={p.is_taken ? 'bg-slate-50 text-slate-400' : ''}>
                 <td className="px-3 py-2 font-medium">
                   {p.name}
+                  {p.injury_description && (
+                    <span
+                      title={
+                        p.injury_expected_return_date
+                          ? `${p.injury_description} — rientro stimato ${p.injury_expected_return_date}`
+                          : p.injury_description
+                      }
+                      className="ml-1 rounded bg-red-100 px-1 py-0.5 text-[9px] font-bold text-red-700"
+                    >
+                      🩹{recoveryDaysLabel(p.injury_expected_return_date) ? ` ${recoveryDaysLabel(p.injury_expected_return_date)}` : ''}
+                    </span>
+                  )}
                   {p.is_midfielder_bug && (
                     <span
                       title="Ruolo Mantra più avanzato: centrocampista con potenziale da attaccante"
