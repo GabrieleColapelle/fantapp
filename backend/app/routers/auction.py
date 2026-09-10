@@ -165,6 +165,7 @@ def get_all_suggestions(league_id: int, manager_id: int, db: Session = Depends(g
             "penalty_rank": p.penalty_rank,
             "free_kick_rank": p.free_kick_rank,
             "last_season_avg_fantavoto": p.last_season_avg_fantavoto,
+            "team_badge_url": p.team_badge_url,
         }
         for p in available
         if p.pick is None

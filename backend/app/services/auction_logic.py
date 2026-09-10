@@ -60,7 +60,7 @@ FASCE = [
     ("Scommesse", 1, 5),
 ]
 
-DEFAULT_FASCIA_COUNTS = {"Top": 3, "Semitop": 4, "Buoni": 4, "Scommesse": 3}
+DEFAULT_FASCIA_COUNTS = {"Top": 10, "Semitop": 12, "Buoni": 12, "Scommesse": 10}
 
 
 def classify_fascia(quotation: float) -> str | None:

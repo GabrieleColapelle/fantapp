@@ -45,6 +45,7 @@ export const api = {
     request(`/leagues/${leagueId}/players/refresh-set-piece-takers`, { method: 'POST' }),
   refreshSeasonStats: (leagueId) => request(`/leagues/${leagueId}/players/refresh-season-stats`, { method: 'POST' }),
   refreshInjuries: (leagueId) => request(`/leagues/${leagueId}/players/refresh-injuries`, { method: 'POST' }),
+  refreshTeamBadges: (leagueId) => request(`/leagues/${leagueId}/players/refresh-team-badges`, { method: 'POST' }),
 
   createPick: (leagueId, payload) =>
     request(`/leagues/${leagueId}/auction/picks`, { method: 'POST', body: JSON.stringify(payload) }),

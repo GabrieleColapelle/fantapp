@@ -106,7 +106,12 @@ export default function PlayerTable({ players, filters, onFiltersChange, manager
                   )}
                 </td>
                 <td className="px-3 py-2">{p.role}</td>
-                <td className="px-3 py-2">{p.team}</td>
+                <td className="px-3 py-2">
+                  <span className="flex items-center gap-1.5">
+                    {p.team_badge_url && <img src={p.team_badge_url} alt="" className="h-4 w-4 object-contain" />}
+                    {p.team}
+                  </span>
+                </td>
                 <td className="px-3 py-2">{p.quotation}</td>
                 <td className="px-3 py-2 text-slate-500">
                   {p.avg_auction_price != null ? p.avg_auction_price.toFixed(1) : '—'}

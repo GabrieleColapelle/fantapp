@@ -68,6 +68,7 @@ class PlayerOut(BaseModel):
     last_season_avg_fantavoto: float | None = None
     injury_description: str = ""
     injury_expected_return_date: date | None = None
+    team_badge_url: str = ""
     tier: str
     status: str
     is_taken: bool
@@ -133,6 +134,11 @@ class SeasonStatsRefreshResult(BaseModel):
 class InjuriesRefreshResult(BaseModel):
     updated: int
     unmatched: int
+    errors: list[str]
+
+
+class TeamBadgesRefreshResult(BaseModel):
+    updated: int
     errors: list[str]
 
 
@@ -203,6 +209,7 @@ class SuggestedPlayer(BaseModel):
     penalty_rank: int | None = None
     free_kick_rank: int | None = None
     last_season_avg_fantavoto: float | None = None
+    team_badge_url: str = ""
 
 
 class FasciaSuggestions(BaseModel):

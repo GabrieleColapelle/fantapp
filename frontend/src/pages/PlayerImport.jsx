@@ -26,6 +26,9 @@ export default function PlayerImport({ league, onDone }) {
   const [injuriesResult, setInjuriesResult] = useState(null)
   const [injuriesLoading, setInjuriesLoading] = useState(false)
   const [injuriesError, setInjuriesError] = useState('')
+  const [badgesResult, setBadgesResult] = useState(null)
+  const [badgesLoading, setBadgesLoading] = useState(false)
+  const [badgesError, setBadgesError] = useState('')
 
   const [manual, setManual] = useState({ name: '', role: 'P', team: '', quotation: '', tier: '' })
 
@@ -131,6 +134,19 @@ export default function PlayerImport({ league, onDone }) {
       setInjuriesError(err.message)
     } finally {
       setInjuriesLoading(false)
+    }
+  }
+
+  async function handleRefreshBadges() {
+    setBadgesLoading(true)
+    setBadgesError('')
+    try {
+      const result = await api.refreshTeamBadges(league.id)
+      setBadgesResult(result)
+    } catch (err) {
+      setBadgesError(err.message)
+    } finally {
+      setBadgesLoading(false)
     }
   }
 
@@ -296,6 +312,27 @@ export default function PlayerImport({ league, onDone }) {
           </p>
         )}
         {injuriesError && <p className="mt-3 text-sm text-red-600">{injuriesError}</p>}
+      </div>
+
+      <div className="rounded-lg bg-white p-4 shadow-sm sm:p-6">
+        <h2 className="mb-1 text-lg font-semibold text-slate-800">Stemmi squadre</h2>
+        <p className="mb-3 text-sm text-slate-500">
+          Aggiunge lo stemma della squadra a ogni giocatore, per riconoscerla al volo in tabella e
+          nei suggerimenti d'asta.
+        </p>
+        <button
+          onClick={handleRefreshBadges}
+          disabled={badgesLoading}
+          className="rounded-md bg-slate-600 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-50"
+        >
+          {badgesLoading ? 'Scaricamento...' : 'Aggiorna stemmi squadre'}
+        </button>
+        {badgesResult && (
+          <p className="mt-3 text-sm text-slate-600">
+            <strong>{badgesResult.updated}</strong> giocatori aggiornati con lo stemma.
+          </p>
+        )}
+        {badgesError && <p className="mt-3 text-sm text-red-600">{badgesError}</p>}
       </div>
 
       <div className="rounded-lg bg-white p-4 shadow-sm sm:p-6">

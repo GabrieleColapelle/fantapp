@@ -70,6 +70,7 @@ class Player(Base):
     last_season_avg_fantavoto: Mapped[float | None] = mapped_column(Float, nullable=True)
     injury_description: Mapped[str] = mapped_column(String, default="")
     injury_expected_return_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    team_badge_url: Mapped[str] = mapped_column(String, default="")
 
     league: Mapped["League"] = relationship(back_populates="players")
     pick: Mapped["AuctionPick | None"] = relationship(back_populates="player", uselist=False)

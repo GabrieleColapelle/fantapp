@@ -28,6 +28,7 @@ from app.services.providers.injuries_provider import (
 from app.services.providers.penalty_takers_provider import PenaltyTakersFetchError, fetch_set_piece_takers
 from app.services.providers.probable_lineups_provider import LineupsFetchError, fetch_probable_lineups
 from app.services.providers.season_stats_provider import SeasonStatsFetchError, fetch_season_stats
+from app.services.providers.team_badges_provider import TeamBadgesFetchError, fetch_team_badges
 
 router = APIRouter(prefix="/api/leagues/{league_id}/players", tags=["players"])
 
@@ -51,6 +52,7 @@ def _to_player_out(player: models.Player) -> schemas.PlayerOut:
         last_season_avg_fantavoto=player.last_season_avg_fantavoto,
         injury_description=player.injury_description,
         injury_expected_return_date=player.injury_expected_return_date,
+        team_badge_url=player.team_badge_url,
         tier=player.tier,
         status=player.status,
         is_taken=pick is not None,
@@ -327,3 +329,23 @@ def refresh_injuries(league_id: int, db: Session = Depends(get_db)):
     db.commit()
 
     return schemas.InjuriesRefreshResult(updated=len(result.matched), unmatched=result.unmatched, errors=[])
+
+
+@router.post("/refresh-team-badges", response_model=schemas.TeamBadgesRefreshResult)
+def refresh_team_badges(league_id: int, db: Session = Depends(get_db)):
+    _get_league_or_404(league_id, db)
+    try:
+        badges = fetch_team_badges()
+    except TeamBadgesFetchError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    league_players = db.query(models.Player).filter(models.Player.league_id == league_id).all()
+    updated = 0
+    for p in league_players:
+        badge_url = badges.get(p.team)
+        if badge_url:
+            p.team_badge_url = badge_url
+            updated += 1
+    db.commit()
+
+    return schemas.TeamBadgesRefreshResult(updated=updated, errors=[])
