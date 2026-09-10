@@ -1,5 +1,8 @@
+from datetime import date
+
 from app.services.player_matching import (
     match_avg_prices,
+    match_injuries,
     match_match_votes,
     match_probable_lineups,
     match_season_stats,
@@ -222,5 +225,32 @@ def test_match_season_stats_leaves_transferred_player_unmatched():
     players = [player(1, "Kolo Muani", "Juventus", "A")]
     rows = [season_row("Kolo Muani", "PSG", "A", 20, 6.1, 7.0)]
     result = match_season_stats(players, rows)
+    assert result.matched == {}
+    assert result.unmatched == 1
+
+
+def injury_row(name, team, description, expected_return_date=None):
+    return {"name": name, "team": team, "description": description, "expected_return_date": expected_return_date}
+
+
+def test_match_injuries_sets_description_and_date():
+    players = [player(1, "Hien", "Atalanta", "D")]
+    rows = [injury_row("Hien", "Atalanta", "lesione muscolare", date(2026, 10, 5))]
+    result = match_injuries(players, rows)
+    assert result.matched == {1: {"description": "lesione muscolare", "expected_return_date": date(2026, 10, 5)}}
+    assert result.unmatched == 0
+
+
+def test_match_injuries_allows_missing_date():
+    players = [player(1, "Trepy", "Cagliari", "A")]
+    rows = [injury_row("Trepy", "Cagliari", "tempi di recupero non definiti")]
+    result = match_injuries(players, rows)
+    assert result.matched[1]["expected_return_date"] is None
+
+
+def test_match_injuries_counts_unmatched():
+    players = [player(1, "Malen", "Roma", "A")]
+    rows = [injury_row("Someone Else", "Roma", "infortunio")]
+    result = match_injuries(players, rows)
     assert result.matched == {}
     assert result.unmatched == 1

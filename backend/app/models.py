@@ -1,7 +1,8 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 from sqlalchemy import (
     Boolean,
+    Date,
     DateTime,
     Float,
     ForeignKey,
@@ -67,6 +68,8 @@ class Player(Base):
     last_season_matches: Mapped[int | None] = mapped_column(Integer, nullable=True)
     last_season_avg_vote: Mapped[float | None] = mapped_column(Float, nullable=True)
     last_season_avg_fantavoto: Mapped[float | None] = mapped_column(Float, nullable=True)
+    injury_description: Mapped[str] = mapped_column(String, default="")
+    injury_expected_return_date: Mapped[date | None] = mapped_column(Date, nullable=True)
 
     league: Mapped["League"] = relationship(back_populates="players")
     pick: Mapped["AuctionPick | None"] = relationship(back_populates="player", uselist=False)
