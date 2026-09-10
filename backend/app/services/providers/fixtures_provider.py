@@ -49,6 +49,15 @@ def _parse_fixtures_html(html: str, matchday: int) -> list[dict]:
         rows.append({"matchday": matchday, "team": home_team, "opponent": away_team, "home": True})
         rows.append({"matchday": matchday, "team": away_team, "opponent": home_team, "home": False})
 
+    # The current/live giornata is featured in an extra promo block on top
+    # of the regular match list, so its cards appear twice on the page —
+    # a future giornata like the next one doesn't have this and only
+    # yields one row per team. Dedupe by team, keeping the first.
+    deduped: dict[str, dict] = {}
+    for row in rows:
+        deduped.setdefault(row["team"], row)
+    rows = list(deduped.values())
+
     if not rows:
         raise FixturesFetchError(
             f"Nessuna partita trovata per la giornata {matchday}: la struttura del sito potrebbe essere "
