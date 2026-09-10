@@ -63,6 +63,9 @@ class PlayerOut(BaseModel):
     is_midfielder_bug: bool = False
     penalty_rank: int | None = None
     free_kick_rank: int | None = None
+    last_season_matches: int | None = None
+    last_season_avg_vote: float | None = None
+    last_season_avg_fantavoto: float | None = None
     tier: str
     status: str
     is_taken: bool
@@ -115,6 +118,13 @@ class MatchVotesRefreshResult(BaseModel):
 
 class TeamStrengthRefreshResult(BaseModel):
     updated: int
+    errors: list[str]
+
+
+class SeasonStatsRefreshResult(BaseModel):
+    season: str
+    updated: int
+    unmatched: int
     errors: list[str]
 
 
@@ -184,6 +194,7 @@ class SuggestedPlayer(BaseModel):
     is_midfielder_bug: bool = False
     penalty_rank: int | None = None
     free_kick_rank: int | None = None
+    last_season_avg_fantavoto: float | None = None
 
 
 class FasciaSuggestions(BaseModel):

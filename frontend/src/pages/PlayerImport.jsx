@@ -20,6 +20,9 @@ export default function PlayerImport({ league, onDone }) {
   const [setPieceResult, setSetPieceResult] = useState(null)
   const [setPieceLoading, setSetPieceLoading] = useState(false)
   const [setPieceError, setSetPieceError] = useState('')
+  const [seasonStatsResult, setSeasonStatsResult] = useState(null)
+  const [seasonStatsLoading, setSeasonStatsLoading] = useState(false)
+  const [seasonStatsError, setSeasonStatsError] = useState('')
 
   const [manual, setManual] = useState({ name: '', role: 'P', team: '', quotation: '', tier: '' })
 
@@ -99,6 +102,19 @@ export default function PlayerImport({ league, onDone }) {
       setSetPieceError(err.message)
     } finally {
       setSetPieceLoading(false)
+    }
+  }
+
+  async function handleRefreshSeasonStats() {
+    setSeasonStatsLoading(true)
+    setSeasonStatsError('')
+    try {
+      const result = await api.refreshSeasonStats(league.id)
+      setSeasonStatsResult(result)
+    } catch (err) {
+      setSeasonStatsError(err.message)
+    } finally {
+      setSeasonStatsLoading(false)
     }
   }
 
@@ -216,6 +232,30 @@ export default function PlayerImport({ league, onDone }) {
           </p>
         )}
         {setPieceError && <p className="mt-3 text-sm text-red-600">{setPieceError}</p>}
+      </div>
+
+      <div className="rounded-lg bg-white p-4 shadow-sm sm:p-6">
+        <h2 className="mb-1 text-lg font-semibold text-slate-800">Statistiche stagione scorsa</h2>
+        <p className="mb-3 text-sm text-slate-500">
+          Aggiunge, per ogni giocatore già in lista, media voto e fantamedia dell'ultima stagione
+          completa (Fantacalcio.it) — un riferimento sul rendimento reale passato, distinto dalla
+          quotazione di mercato. Un giocatore trasferito quest'estate potrebbe risultare non
+          abbinato: la squadra dell'anno scorso non coincide con quella attuale.
+        </p>
+        <button
+          onClick={handleRefreshSeasonStats}
+          disabled={seasonStatsLoading}
+          className="rounded-md bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700 disabled:opacity-50"
+        >
+          {seasonStatsLoading ? 'Scaricamento...' : 'Aggiorna statistiche stagione scorsa'}
+        </button>
+        {seasonStatsResult && (
+          <p className="mt-3 text-sm text-slate-600">
+            Stagione <strong>{seasonStatsResult.season}</strong>: <strong>{seasonStatsResult.updated}</strong>{' '}
+            giocatori aggiornati ({seasonStatsResult.unmatched} non abbinati).
+          </p>
+        )}
+        {seasonStatsError && <p className="mt-3 text-sm text-red-600">{seasonStatsError}</p>}
       </div>
 
       <div className="rounded-lg bg-white p-4 shadow-sm sm:p-6">
