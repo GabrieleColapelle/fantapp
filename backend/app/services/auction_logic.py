@@ -107,6 +107,20 @@ def compute_role_budget(spent_by_role: dict[str, float], budget_total: int, defe
     return result
 
 
+# Each fantavoto point of recent form above/below the 6.0 sufficiency
+# baseline shifts a player's ranking by this many quotation-equivalent
+# points — enough to matter within a fascia without letting one giornata
+# override the whole price tier a player's quotation puts them in.
+RECENT_FORM_BASELINE = 6.0
+RECENT_FORM_WEIGHT = 5.0
+
+
+def _appetibility_key(p: dict) -> float:
+    recent_form = p.get("recent_form_fantavoto")
+    form_adjustment = (recent_form - RECENT_FORM_BASELINE) * RECENT_FORM_WEIGHT if recent_form is not None else 0.0
+    return p["quotation"] + form_adjustment
+
+
 def suggest_players_by_fascia(
     available_players: list[dict],
     role: str,
@@ -116,13 +130,17 @@ def suggest_players_by_fascia(
     """Available players for `role` within the manager's remaining budget,
     grouped by price fascia (Top/Semitop/Buoni/Scommesse) so a manager can
     see options spread across the slots they still need to fill, not just
-    the single most expensive handful. Best (most expensive) first within
-    each fascia."""
+    the single most expensive handful. Within each fascia, ranked by
+    quotation adjusted for recent form (last 4 giornate fantamedia, see
+    _appetibility_key) rather than quotation alone — a cheaper player in
+    great form can outrank a pricier one who's been poor lately. Missing
+    recent-form data (new signing, long injury) is treated as neutral,
+    not penalized."""
     counts = counts or DEFAULT_FASCIA_COUNTS
     candidates = [
         p for p in available_players if p["role"] == role and p["quotation"] <= remaining_budget
     ]
-    candidates.sort(key=lambda p: p["quotation"], reverse=True)
+    candidates.sort(key=_appetibility_key, reverse=True)
 
     grouped: dict[str, list[dict]] = {name: [] for name, _, _ in FASCE}
     for p in candidates:

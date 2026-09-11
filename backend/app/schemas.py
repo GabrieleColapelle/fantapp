@@ -69,6 +69,7 @@ class PlayerOut(BaseModel):
     injury_description: str = ""
     injury_expected_return_date: date | None = None
     team_badge_url: str = ""
+    recent_form_fantavoto: float | None = None
     tier: str
     status: str
     is_taken: bool
@@ -210,6 +211,7 @@ class SuggestedPlayer(BaseModel):
     free_kick_rank: int | None = None
     last_season_avg_fantavoto: float | None = None
     team_badge_url: str = ""
+    recent_form_fantavoto: float | None = None
 
 
 class FasciaSuggestions(BaseModel):

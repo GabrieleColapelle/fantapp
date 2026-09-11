@@ -64,6 +64,11 @@ function PlayerRow({ s }) {
               (FM {s.last_season_avg_fantavoto.toFixed(1)})
             </span>
           )}
+          {s.recent_form_fantavoto != null && (
+            <span className="ml-1 text-xs font-medium text-blue-500" title="Fantamedia nelle ultime 4 giornate giocate quest'anno">
+              [{s.recent_form_fantavoto.toFixed(1)}]
+            </span>
+          )}
         </span>
       </div>
     </li>
@@ -75,7 +80,9 @@ export default function SuggestionsPanel({ suggestions }) {
     <div className="rounded-lg bg-white p-4 shadow-sm">
       <div className="mb-3 flex items-center justify-between">
         <h3 className="text-sm font-semibold text-slate-700">Suggerimenti</h3>
-        <span className="text-[11px] text-slate-400">ordinati per appetibilità, scorri per vederne di più</span>
+        <span className="text-[11px] text-slate-400">
+          ordinati per quotazione e forma [ultime 4] · scorri per vederne di più
+        </span>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

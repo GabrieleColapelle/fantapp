@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app import models, schemas
 from app.database import get_db
@@ -10,6 +10,7 @@ from app.services.auction_logic import (
     role_gaps,
     suggest_players_by_fascia,
 )
+from app.services.player_stats import recent_form_fantavoto
 
 router = APIRouter(prefix="/api/leagues/{league_id}/auction", tags=["auction"])
 
@@ -151,7 +152,12 @@ def get_all_suggestions(league_id: int, manager_id: int, db: Session = Depends(g
     spent = sum(p.price_paid for p in manager.picks)
     remaining_budget = manager.league.budget_total - spent
 
-    available = db.query(models.Player).filter(models.Player.league_id == league_id).all()
+    available = (
+        db.query(models.Player)
+        .options(selectinload(models.Player.match_stats))
+        .filter(models.Player.league_id == league_id)
+        .all()
+    )
     available_dicts = [
         {
             "player_id": p.id,
@@ -166,6 +172,9 @@ def get_all_suggestions(league_id: int, manager_id: int, db: Session = Depends(g
             "free_kick_rank": p.free_kick_rank,
             "last_season_avg_fantavoto": p.last_season_avg_fantavoto,
             "team_badge_url": p.team_badge_url,
+            "recent_form_fantavoto": recent_form_fantavoto(
+                [{"matchday": s.matchday, "played": s.played, "vote": s.vote} for s in p.match_stats]
+            ),
         }
         for p in available
         if p.pick is None

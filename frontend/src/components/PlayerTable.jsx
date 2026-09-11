@@ -73,6 +73,7 @@ export default function PlayerTable({ players, filters, onFiltersChange, manager
               <th className="px-3 py-2">Quot.</th>
               <th className="px-3 py-2">Media aste</th>
               <th className="px-3 py-2" title="Fantamedia stagione scorsa">FM scorsa</th>
+              <th className="px-3 py-2" title="Fantamedia nelle ultime 4 giornate giocate quest'anno">FM ultime 4</th>
               <th className="px-3 py-2">Titolare</th>
               <th className="px-3 py-2" title="Presenze stagione scorsa (per i giocatori liberi); manager e prezzo (per quelli già presi)">
                 Presenze 25/26
@@ -144,6 +145,9 @@ export default function PlayerTable({ players, filters, onFiltersChange, manager
                     '—'
                   )}
                 </td>
+                <td className="px-3 py-2 text-slate-500">
+                  {p.recent_form_fantavoto != null ? p.recent_form_fantavoto.toFixed(2) : '—'}
+                </td>
                 <td className={`px-3 py-2 ${starterClass(p.starter_probability)}`}>
                   {p.starter_probability != null ? `${p.starter_probability.toFixed(0)}%` : '—'}
                 </td>
@@ -190,7 +194,7 @@ export default function PlayerTable({ players, filters, onFiltersChange, manager
             ))}
             {players.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-3 py-6 text-center text-slate-400">
+                <td colSpan={10} className="px-3 py-6 text-center text-slate-400">
                   Nessun giocatore trovato
                 </td>
               </tr>
