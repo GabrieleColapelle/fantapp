@@ -5,6 +5,7 @@ import Auction from './pages/Auction'
 import LeagueSelect from './pages/LeagueSelect'
 import Lineup from './pages/Lineup'
 import PlayerImport from './pages/PlayerImport'
+import TeamFormations from './pages/TeamFormations'
 
 const LEAGUE_ID_KEY = 'fantapp.leagueId'
 
@@ -104,6 +105,9 @@ export default function App() {
         <TabButton active={tab === 'lineup'} onClick={() => setTab('lineup')}>
           Formazioni
         </TabButton>
+        <TabButton active={tab === 'team-formations'} onClick={() => setTab('team-formations')}>
+          Formazioni Serie A
+        </TabButton>
       </div>
 
       {tab === 'import' && <PlayerImport league={league} onDone={() => setTab('auction')} />}
@@ -117,6 +121,7 @@ export default function App() {
         ) : (
           <Lineup league={league} />
         ))}
+      {tab === 'team-formations' && <TeamFormations league={league} />}
     </div>
   )
 }

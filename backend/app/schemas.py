@@ -143,6 +143,25 @@ class TeamBadgesRefreshResult(BaseModel):
     errors: list[str]
 
 
+class TeamFormationOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    team: str
+    image_url: str | None = None
+    coach: str = ""
+    formation_module: str = ""
+    starting_eleven: str = ""
+    ballottaggi: str = ""
+    penalty_takers: str = ""
+    free_kick_takers: str = ""
+    team_badge_url: str = ""
+
+
+class TeamFormationsRefreshResult(BaseModel):
+    updated: int
+    errors: list[str]
+
+
 class AuctionPickCreate(BaseModel):
     player_id: int
     manager_id: int

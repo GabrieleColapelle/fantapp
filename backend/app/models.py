@@ -34,6 +34,7 @@ class League(Base):
     fixtures: Mapped[list["Fixture"]] = relationship(back_populates="league", cascade="all, delete-orphan")
     lineups: Mapped[list["Lineup"]] = relationship(back_populates="league", cascade="all, delete-orphan")
     team_strengths: Mapped[list["TeamStrength"]] = relationship(back_populates="league", cascade="all, delete-orphan")
+    team_formations: Mapped[list["TeamFormation"]] = relationship(back_populates="league", cascade="all, delete-orphan")
 
 
 class Manager(Base):
@@ -138,6 +139,25 @@ class TeamStrength(Base):
     league: Mapped["League"] = relationship(back_populates="team_strengths")
 
     __table_args__ = (UniqueConstraint("league_id", "team", name="uq_league_team_strength"),)
+
+
+class TeamFormation(Base):
+    __tablename__ = "team_formations"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    league_id: Mapped[int] = mapped_column(ForeignKey("leagues.id"), nullable=False)
+    team: Mapped[str] = mapped_column(String, nullable=False)
+    image_url: Mapped[str | None] = mapped_column(String, nullable=True)
+    coach: Mapped[str] = mapped_column(String, default="")
+    formation_module: Mapped[str] = mapped_column(String, default="")
+    starting_eleven: Mapped[str] = mapped_column(String, default="")
+    ballottaggi: Mapped[str] = mapped_column(String, default="")
+    penalty_takers: Mapped[str] = mapped_column(String, default="")
+    free_kick_takers: Mapped[str] = mapped_column(String, default="")
+
+    league: Mapped["League"] = relationship(back_populates="team_formations")
+
+    __table_args__ = (UniqueConstraint("league_id", "team", name="uq_league_team_formation"),)
 
 
 class Lineup(Base):
