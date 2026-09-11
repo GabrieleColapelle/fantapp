@@ -1,7 +1,7 @@
 from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app import models, schemas
 from app.database import get_db
@@ -13,6 +13,7 @@ from app.services.player_matching import (
     match_season_stats,
     match_set_piece_takers,
 )
+from app.services.player_stats import recent_form_fantavoto
 from app.services.providers.fantacalcio_online_provider import (
     AveragePriceFetchError,
     fetch_average_prices,
@@ -35,6 +36,7 @@ router = APIRouter(prefix="/api/leagues/{league_id}/players", tags=["players"])
 
 def _to_player_out(player: models.Player) -> schemas.PlayerOut:
     pick = player.pick
+    match_stat_dicts = [{"matchday": s.matchday, "played": s.played, "vote": s.vote} for s in player.match_stats]
     return schemas.PlayerOut(
         id=player.id,
         name=player.name,
@@ -53,6 +55,7 @@ def _to_player_out(player: models.Player) -> schemas.PlayerOut:
         injury_description=player.injury_description,
         injury_expected_return_date=player.injury_expected_return_date,
         team_badge_url=player.team_badge_url,
+        recent_form_fantavoto=recent_form_fantavoto(match_stat_dicts),
         tier=player.tier,
         status=player.status,
         is_taken=pick is not None,
@@ -79,7 +82,9 @@ def list_players(
     db: Session = Depends(get_db),
 ):
     _get_league_or_404(league_id, db)
-    query = db.query(models.Player).filter(models.Player.league_id == league_id)
+    query = db.query(models.Player).options(selectinload(models.Player.match_stats)).filter(
+        models.Player.league_id == league_id
+    )
     if role:
         query = query.filter(models.Player.role == role.upper())
     if team:

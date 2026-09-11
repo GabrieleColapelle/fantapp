@@ -7,6 +7,17 @@ from app.services.auction_logic import (
 )
 
 
+def player(player_id, quotation, recent_form_fantavoto=None):
+    return {
+        "player_id": player_id,
+        "name": str(player_id),
+        "team": "X",
+        "role": "A",
+        "quotation": quotation,
+        "recent_form_fantavoto": recent_form_fantavoto,
+    }
+
+
 def test_classify_deal_good_deal():
     deal = classify_deal(price_paid=8, quotation=15)
     assert deal.label == "Buon affare"
@@ -77,6 +88,27 @@ def test_suggest_players_by_fascia_groups_and_sorts_within_group():
     assert [p["player_id"] for p in result["Semitop"]] == [3]
     assert [p["player_id"] for p in result["Scommesse"]] == [4]
     assert result["Buoni"] == []
+
+
+def test_suggest_players_by_fascia_boosts_cheaper_player_in_better_form():
+    # Same fascia (Semitop): B is cheaper than A on quotation alone, but
+    # far better recent form should let B outrank A.
+    players = [
+        player(1, quotation=20, recent_form_fantavoto=5.0),  # A: poor recent form
+        player(2, quotation=16, recent_form_fantavoto=9.0),  # B: excellent recent form
+    ]
+    result = suggest_players_by_fascia(players, role="A", remaining_budget=100)
+    assert [p["player_id"] for p in result["Semitop"]] == [2, 1]
+
+
+def test_suggest_players_by_fascia_missing_recent_form_is_neutral_not_penalized():
+    players = [
+        player(1, quotation=20, recent_form_fantavoto=None),  # no data yet
+        player(2, quotation=18, recent_form_fantavoto=6.0),  # exactly baseline
+    ]
+    result = suggest_players_by_fascia(players, role="A", remaining_budget=100)
+    # Quotation alone still decides when form is neutral/baseline either way.
+    assert [p["player_id"] for p in result["Semitop"]] == [1, 2]
 
 
 def test_suggest_players_by_fascia_respects_per_fascia_limit():
